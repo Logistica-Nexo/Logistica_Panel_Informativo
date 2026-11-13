@@ -29,11 +29,15 @@ button:hover{background:var(--p2)}button.ghost{background:#e6e8f8;color:var(--p2
 .bar{height:10px;background:#e6e8f8;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--p),var(--ok))}
 .tw{overflow-x:auto;background:#fff;border-radius:12px;margin:10px 0}table{border-collapse:collapse;width:100%;min-width:900px}
 th{background:var(--d);color:#fff;font-size:13px;padding:10px;text-align:left}td{padding:3px 4px;border-bottom:1px solid #eceefb}td input{margin:0}
-@media(max-width:640px){.g2{grid-template-columns:1fr}}
+table.dr{min-width:0;border-collapse:separate;border-spacing:0 3px;margin:8px 0 12px}
+.dr th{background:var(--p2);width:200px;font-size:12px;padding:10px 12px;vertical-align:middle}
+.dr td{background:#fff;padding:10px 14px;font-weight:600;border:1.5px solid #d5d8ee}
+.dr tr.y td{background:#FFEB3B;font-size:19px;font-weight:700;border-color:#e6d200}.dr td.big{text-align:center;font-size:19px;font-weight:700}
+@media(max-width:640px){.g2{grid-template-columns:1fr}.dr th{width:110px}}
 </style></head><body><div id="app"></div>
 <script>
 // ====== CONFIGURACIÓN: pega aquí los datos de tu proyecto Supabase (Settings > API) ======
-const SB_URL='https://fzztrlhuixkfwixsdwcc.supabase.co',SB_KEY='sb_publishable_sCHdAi4NeF0o44N0QeFX6A_hpQC3Tz0';
+const SB_URL='https://TU-PROYECTO.supabase.co',SB_KEY='TU_ANON_PUBLIC_KEY';
 // ==========================================================================================
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const BOD=[301,302,303,304,306,307,308,309,311,312,314,315,316,318,319,320,321,322,323,324,325,326,328,329,330,331,332,333,334,335,336,337,338,339,340,501,502,503,504,505,801,802,803].map(n=>'B'+n);
@@ -53,22 +57,27 @@ async function portal(){
   S=a.data;SB=b.data;
   $('#m').innerHTML='<h2>Solicitudes activas</h2>'+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
 }
+const fx=d=>d?new Date(d+'T00:00').toLocaleDateString('es-BO',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).toUpperCase():'';
+function datos(s){
+  const r=(k,v,c='')=>v?`<tr><th>${k}</th><td class="${c}">${e(v)}</td></tr>`:'';
+  const lv=s.cond_activa?[s.cond_lote&&'LOTE '+s.cond_lote,s.cond_fecha&&'VENCE '+s.cond_fecha].filter(Boolean).join(' · '):'TODO EL STOCK';
+  return `<table class="dr">${s.codigo||s.producto?`<tr class="y"><th>COD SKU:<br>DESCRIPCIÓN:</th><td>${e(s.codigo)} &nbsp; ${e(s.producto)}</td></tr>`:''}
+  ${s.codigo||s.producto||s.cond_activa?r('LOTE / VENCIMIENTO:',lv,'big'):''}${r('PROVEEDOR:',s.proveedor)}${r('MOTIVO:',s.motivo)}${r('BODEGAS DESTINO:',s.destino)}${r('PLAZO:',fx(s.plazo))}${r('RÓTULO:',s.rotulo)}</table>`;
+}
 function card(s){
-  const bs=SB.filter(x=>x.solicitud_id==s.id),last=localStorage.bod;
-  return `<div class="card"><h3>${e(s.titulo)}</h3>
-  ${s.producto||s.codigo?`<p><b>${e(s.producto)}</b> ${s.codigo?`<span class="tag">${e(s.codigo)}</span>`:''}</p>`:''}
-  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}
-  ${s.cond_activa?`<p class="note">Condición: lote <b>${e(s.cond_lote||'cualquiera')}</b> · vencimiento <b>${e(s.cond_fecha||'cualquiera')}</b></p>`:''}
+  const bs=SB.filter(x=>x.solicitud_id==s.id),last=localStorage.bod,info=s.tipo=='informativa';
+  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span></h3>
+  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}
   ${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}
-  <div class="row"><select id="b_${s.id}" style="max-width:260px"><option value="">Elige tu bodega</option>
+  ${info?'':`<div class="row"><select id="b_${s.id}" style="max-width:260px"><option value="">Elige tu bodega</option>
   ${bs.map(x=>`<option value="${x.bodega}" ${x.estado=='enviado'?'disabled':''} ${x.bodega==last?'selected':''}>${x.bodega}${x.estado=='enviado'?' · ya enviado':''}</option>`).join('')}</select>
-  <button onclick="fill('${s.id}')">Llenar información</button></div></div>`;
+  <button onclick="fill('${s.id}')">Llenar información</button></div>`}</div>`;
 }
 function fill(id){
   const s=S.find(x=>x.id==id),b=$('#b_'+id).value;if(!b)return alert('Elige tu bodega primero');
   localStorage.bod=b;CUR=s;
   $('#m').innerHTML=`<button class="ghost" onclick="portal()">← Volver</button><h2>${e(s.titulo)} <span class="tag">${b}</span></h2>
-  ${s.cond_activa?`<p class="note">Solo registra producto con lote <b>${e(s.cond_lote||'cualquiera')}</b> y vencimiento <b>${e(s.cond_fecha||'cualquiera')}</b>.</p>`:''}
+  ${datos(s)}
   <div class="tw"><table><thead><tr>${['CÓDIGO','DESCRIPCIÓN','U. MEDIDA','CANTIDAD','F. VENCIMIENTO','LOTE','PROVEEDOR',''].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div>
   <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}','${b}')">Enviar información</button><button class="ghost" onclick="send('${id}','${b}',1)">Sin existencias</button></div>`;
   addRow();
@@ -98,35 +107,42 @@ async function admin(){
 }
 async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});error?alert(error.message):admin()}
 const mk=v=>document.querySelectorAll('.chips input').forEach(i=>i.checked=!!v);
+const tipo=()=>$('#bw').hidden=$('#tp').value=='informativa';
 function nueva(){
-  $('#m').innerHTML=`<div class="card"><h2>Nueva solicitud de barrido</h2>
-  <input id="t" placeholder="Título (ej. Barrido de mercado – Amoxicilina 500 mg)">
-  <div class="g2"><input id="p" placeholder="Producto a levantar (opcional)"><input id="c" placeholder="Código (opcional)"></div>
-  <input id="d" placeholder="Instrucciones (opcional)">
+  $('#m').innerHTML=`<div class="card"><h2>Nueva solicitud</h2>
+  <select id="tp" onchange="tipo()"><option value="llenado">Con llenado: las bodegas cargan datos</option><option value="informativa">Solo información: las bodegas solo la ven</option></select>
+  <input id="t" placeholder="Título (ej. Repliegue EVRA PROMEDICAL)">
+  <div class="g2"><input id="c" placeholder="Código SKU (opcional)"><input id="p" placeholder="Descripción del producto (opcional)"></div>
+  <input id="pv" placeholder="Proveedor (ej. 000184 PROMEDICAL S.A.)">
+  <div class="g2"><input id="mo" placeholder="Motivo (ej. SOLICITUD)"><input id="ro" placeholder="Rótulo"></div>
+  <input id="de" placeholder="Bodegas destino / a dónde enviar">
+  <label class="mut">Plazo</label><input id="pz" type="date">
+  <input id="d" placeholder="Instrucciones adicionales (opcional)">
   <label class="mut">Documento adjunto (opcional)</label><input id="f" type="file">
-  <label class="sw"><input type="checkbox" id="ca" onchange="$('#cb').hidden=!this.checked"> Aplicar condición de lote y/o fecha</label>
+  <label class="sw"><input type="checkbox" id="ca" onchange="$('#cb').hidden=!this.checked"> Aplicar condición de lote y/o fecha (si no, se muestra TODO EL STOCK)</label>
   <div id="cb" class="g2" hidden><input id="cl" placeholder="Lote"><input id="cf" type="date"></div>
-  <h3>Bodegas <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
-  <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div>
+  <div id="bw"><h3>Bodegas que deben llenar <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
+  <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div></div>
   <button onclick="crear()">Publicar solicitud</button></div>`;
 }
 async function crear(){
-  const bs=[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
-  if(!$('#t').value.trim()||!bs.length)return alert('Falta el título o elegir bodegas');
+  const info=$('#tp').value=='informativa',bs=info?[]:[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
+  if(!$('#t').value.trim()||(!info&&!bs.length))return alert('Falta el título o elegir bodegas');
   let url=null;const fl=$('#f').files[0];
   if(fl){const p=Date.now()+'_'+fl.name.replace(/[^\w.]/g,'_'),u=await sb.storage.from('docs').upload(p,fl);if(u.error)return alert(u.error.message);url=sb.storage.from('docs').getPublicUrl(p).data.publicUrl}
   const ca=$('#ca').checked,v=id=>$(id).value.trim()||null;
-  const{data,error}=await sb.from('solicitudes').insert({titulo:v('#t'),producto:v('#p'),codigo:v('#c'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lote:ca?v('#cl'):null,cond_fecha:ca?v('#cf'):null}).select().single();
+  const{data,error}=await sb.from('solicitudes').insert({tipo:$('#tp').value,titulo:v('#t'),producto:v('#p'),codigo:v('#c'),proveedor:v('#pv'),motivo:v('#mo'),rotulo:v('#ro'),destino:v('#de'),plazo:v('#pz'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lote:ca?v('#cl'):null,cond_fecha:ca?v('#cf'):null}).select().single();
   if(error)return alert(error.message);
+  if(!bs.length)return lista();
   const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:data.id,bodega:b})));
   r.error?alert(r.error.message):lista();
 }
 async function lista(){
   const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*')]);
-  $('#m').innerHTML=a.data.map(s=>{const x=b.data.filter(y=>y.solicitud_id==s.id),ok=x.filter(y=>y.estado=='enviado').length,pc=Math.round(ok/(x.length||1)*100);
-  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span></h3><div class="bar"><i style="width:${pc}%"></i></div>
-  <p class="mut">${ok} de ${x.length} bodegas enviaron (${pc}%)</p>
-  <div class="row"><button onclick="ver('${s.id}')">Ver consolidado</button>
+  $('#m').innerHTML=a.data.map(s=>{const info=s.tipo=='informativa',x=b.data.filter(y=>y.solicitud_id==s.id),ok=x.filter(y=>y.estado=='enviado').length,pc=Math.round(ok/(x.length||1)*100);
+  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h3>${datos(s)}
+  ${info?'':`<div class="bar"><i style="width:${pc}%"></i></div><p class="mut">${ok} de ${x.length} bodegas enviaron (${pc}%)</p>`}
+  <div class="row">${info?'':`<button onclick="ver('${s.id}')">Ver consolidado</button>`}
   <button class="ghost" onclick="est('${s.id}','${s.estado=='abierta'?'cerrada':'abierta'}')">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
   <button class="ghost" onclick="del('${s.id}')">Eliminar</button></div></div>`}).join('')||'<p class="mut">Aún no hay solicitudes. Crea la primera.</p>';
 }
