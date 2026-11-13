@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panel Informativo Logística · NEXOCORP</title>
+<link rel="icon" href="icon.jpg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--p:#5046E5;--p2:#3F4FA8;--d:#1B2154;--bg:#F2F3FA;--t:#1d2040;--m:#6b7099;--ok:#1f9d6b}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font:16px/1.5 Outfit,system-ui,sans-serif;background:var(--bg);color:var(--t)}
+header{background:linear-gradient(110deg,var(--d),var(--p2) 70%,var(--p));color:#fff;display:flex;align-items:center;gap:14px;padding:14px 24px}
+header img{width:46px;height:46px;border-radius:12px}header h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.02em}
+header small{display:block;font-weight:300;opacity:.8}header .r{margin-left:auto}
+main{max-width:1100px;margin:24px auto;padding:0 16px}
+h2,h3{margin:.3em 0 .6em}.mut{color:var(--m)}
+.card{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(27,33,84,.12)}
+input,select{width:100%;padding:10px 12px;margin:4px 0 10px;border:1.5px solid #d5d8ee;border-radius:9px;font:inherit;background:#fff}
+input:focus,select:focus{outline:3px solid #5046e540;border-color:var(--p)}
+input.lk{background:#eceefb;color:var(--p2);font-weight:600}
+button{background:var(--p);color:#fff;border:0;border-radius:9px;padding:10px 18px;font:600 15px Outfit,sans-serif;cursor:pointer}
+button:hover{background:var(--p2)}button.ghost{background:#e6e8f8;color:var(--p2)}button.x{background:none;color:#c0392b;padding:4px 8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tag{background:#e6e8f8;color:var(--p2);border-radius:20px;padding:2px 12px;font-size:13px;font-weight:600}
+.note{background:#fff7e0;border-left:4px solid #f0b429;padding:10px 14px;border-radius:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
+.chip{background:#fff;border:1.5px solid #d5d8ee;border-radius:9px;padding:6px 12px;font-weight:600;cursor:pointer}
+.chip input{width:auto;margin:0 6px 0 0}.chip.ok{background:#e3f6ee;border-color:var(--ok);color:var(--ok)}.chip a{cursor:pointer}
+.sw{display:flex;gap:8px;align-items:center;font-weight:600;margin:6px 0 10px}.sw input{width:auto;margin:0}
+.bar{height:10px;background:#e6e8f8;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--p),var(--ok))}
+.tw{overflow-x:auto;background:#fff;border-radius:12px;margin:10px 0}table{border-collapse:collapse;width:100%;min-width:900px}
+th{background:var(--d);color:#fff;font-size:13px;padding:10px;text-align:left}td{padding:3px 4px;border-bottom:1px solid #eceefb}td input{margin:0}
+@media(max-width:640px){.g2{grid-template-columns:1fr}}
+</style></head><body><div id="app"></div>
+<script>
+// ====== CONFIGURACIÓN: pega aquí los datos de tu proyecto Supabase (Settings > API) ======
+const SB_URL='https://TU-PROYECTO.supabase.co',SB_KEY='TU_ANON_PUBLIC_KEY';
+// ==========================================================================================
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const BOD=[301,302,303,304,306,307,308,309,311,312,314,315,316,318,319,320,321,322,323,324,325,326,328,329,330,331,332,333,334,335,336,337,338,339,340,501,502,503,504,505,801,802,803].map(n=>'B'+n);
+const COL=['bodega','codigo','descripcion','unidad','cantidad','fecha_vencimiento','lote','proveedor'];
+const $=s=>document.querySelector(s),app=$('#app');
+const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const head=(sub,r='')=>`<header><img src="icon.jpg" alt="NEXOCORP"><h1>PANEL INFORMATIVO LOGÍSTICA<small>${sub}</small></h1><div class="r">${r}</div></header>`;
+addEventListener('hashchange',init);init();
+function init(){location.hash=='#admin'?admin():portal()}
+
+/* ================= PORTAL DE BODEGAS ================= */
+let S=[],SB=[],CUR;
+async function portal(){
+  app.innerHTML=head('Portal de bodegas')+'<main id="m"><p class="mut">Cargando…</p></main>';
+  const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*')]);
+  if(a.error)return $('#m').innerHTML='<div class="card">No se pudo cargar: '+e(a.error.message)+'</div>';
+  S=a.data;SB=b.data;
+  $('#m').innerHTML='<h2>Solicitudes activas</h2>'+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
+}
+function card(s){
+  const bs=SB.filter(x=>x.solicitud_id==s.id),last=localStorage.bod;
+  return `<div class="card"><h3>${e(s.titulo)}</h3>
+  ${s.producto||s.codigo?`<p><b>${e(s.producto)}</b> ${s.codigo?`<span class="tag">${e(s.codigo)}</span>`:''}</p>`:''}
+  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}
+  ${s.cond_activa?`<p class="note">Condición: lote <b>${e(s.cond_lote||'cualquiera')}</b> · vencimiento <b>${e(s.cond_fecha||'cualquiera')}</b></p>`:''}
+  ${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}
+  <div class="row"><select id="b_${s.id}" style="max-width:260px"><option value="">Elige tu bodega</option>
+  ${bs.map(x=>`<option value="${x.bodega}" ${x.estado=='enviado'?'disabled':''} ${x.bodega==last?'selected':''}>${x.bodega}${x.estado=='enviado'?' · ya enviado':''}</option>`).join('')}</select>
+  <button onclick="fill('${s.id}')">Llenar información</button></div></div>`;
+}
+function fill(id){
+  const s=S.find(x=>x.id==id),b=$('#b_'+id).value;if(!b)return alert('Elige tu bodega primero');
+  localStorage.bod=b;CUR=s;
+  $('#m').innerHTML=`<button class="ghost" onclick="portal()">← Volver</button><h2>${e(s.titulo)} <span class="tag">${b}</span></h2>
+  ${s.cond_activa?`<p class="note">Solo registra producto con lote <b>${e(s.cond_lote||'cualquiera')}</b> y vencimiento <b>${e(s.cond_fecha||'cualquiera')}</b>.</p>`:''}
+  <div class="tw"><table><thead><tr>${['CÓDIGO','DESCRIPCIÓN','U. MEDIDA','CANTIDAD','F. VENCIMIENTO','LOTE','PROVEEDOR',''].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div>
+  <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}','${b}')">Enviar información</button><button class="ghost" onclick="send('${id}','${b}',1)">Sin existencias</button></div>`;
+  addRow();
+}
+function addRow(){
+  const s=CUR,c=s.cond_activa;
+  const i=(k,t='text',v='',ro=false)=>`<td><input data-c="${k}" type="${t}" value="${e(v)}" ${ro?'readonly class="lk"':''}></td>`;
+  $('#rows').insertAdjacentHTML('beforeend','<tr>'+i('codigo','text',s.codigo)+i('descripcion','text',s.producto||s.descripcion)+i('unidad')+i('cantidad','number')
+   +i('fecha_vencimiento','date',c?s.cond_fecha:'',c&&!!s.cond_fecha)+i('lote','text',c?s.cond_lote:'',c&&!!s.cond_lote)+i('proveedor')
+   +'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
+}
+async function send(id,b,empty){
+  const f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input')].map(i=>[i.dataset.c,i.value.trim()]))).filter(r=>r.cantidad||r.lote||r.proveedor);
+  if(!empty){if(!f.length)return alert('Agrega al menos una fila');if(f.some(r=>!r.codigo||!r.cantidad))return alert('Código y cantidad son obligatorios en cada fila')}
+  if(!confirm(empty?`¿Confirmas que ${b} no tiene existencias?`:`¿Enviar ${f.length} fila(s) de ${b}? No podrás editarlas después.`))return;
+  const{error}=await sb.rpc('enviar_bodega',{p_sol:id,p_bod:b,p_filas:f});
+  if(error)return alert('No se pudo enviar: '+error.message);
+  $('#m').innerHTML='<div class="card"><h2>✅ Información enviada</h2><p>Gracias, '+b+'.</p><button onclick="portal()">Volver a solicitudes</button></div>';
+}
+
+/* ================= PANEL ADMIN (#admin) ================= */
+async function admin(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session)return app.innerHTML=head('Administrador')+'<main><div class="card" style="max-width:380px;margin:auto"><h2>Acceso administrador</h2><input id="em" placeholder="Correo"><input id="pw" type="password" placeholder="Contraseña"><button onclick="login()">Ingresar</button></div></main>';
+  app.innerHTML=head('Administrador','<button class="ghost" onclick="sb.auth.signOut().then(admin)">Salir</button>')+'<main><div class="row" style="margin-bottom:14px"><button onclick="nueva()">+ Nueva solicitud</button><button class="ghost" onclick="lista()">Solicitudes</button></div><div id="m"></div></main>';
+  lista();
+}
+async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});error?alert(error.message):admin()}
+const mk=v=>document.querySelectorAll('.chips input').forEach(i=>i.checked=!!v);
+function nueva(){
+  $('#m').innerHTML=`<div class="card"><h2>Nueva solicitud de barrido</h2>
+  <input id="t" placeholder="Título (ej. Barrido de mercado – Amoxicilina 500 mg)">
+  <div class="g2"><input id="p" placeholder="Producto a levantar (opcional)"><input id="c" placeholder="Código (opcional)"></div>
+  <input id="d" placeholder="Instrucciones (opcional)">
+  <label class="mut">Documento adjunto (opcional)</label><input id="f" type="file">
+  <label class="sw"><input type="checkbox" id="ca" onchange="$('#cb').hidden=!this.checked"> Aplicar condición de lote y/o fecha</label>
+  <div id="cb" class="g2" hidden><input id="cl" placeholder="Lote"><input id="cf" type="date"></div>
+  <h3>Bodegas <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
+  <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div>
+  <button onclick="crear()">Publicar solicitud</button></div>`;
+}
+async function crear(){
+  const bs=[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
+  if(!$('#t').value.trim()||!bs.length)return alert('Falta el título o elegir bodegas');
+  let url=null;const fl=$('#f').files[0];
+  if(fl){const p=Date.now()+'_'+fl.name.replace(/[^\w.]/g,'_'),u=await sb.storage.from('docs').upload(p,fl);if(u.error)return alert(u.error.message);url=sb.storage.from('docs').getPublicUrl(p).data.publicUrl}
+  const ca=$('#ca').checked,v=id=>$(id).value.trim()||null;
+  const{data,error}=await sb.from('solicitudes').insert({titulo:v('#t'),producto:v('#p'),codigo:v('#c'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lote:ca?v('#cl'):null,cond_fecha:ca?v('#cf'):null}).select().single();
+  if(error)return alert(error.message);
+  const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:data.id,bodega:b})));
+  r.error?alert(r.error.message):lista();
+}
+async function lista(){
+  const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*')]);
+  $('#m').innerHTML=a.data.map(s=>{const x=b.data.filter(y=>y.solicitud_id==s.id),ok=x.filter(y=>y.estado=='enviado').length,pc=Math.round(ok/(x.length||1)*100);
+  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span></h3><div class="bar"><i style="width:${pc}%"></i></div>
+  <p class="mut">${ok} de ${x.length} bodegas enviaron (${pc}%)</p>
+  <div class="row"><button onclick="ver('${s.id}')">Ver consolidado</button>
+  <button class="ghost" onclick="est('${s.id}','${s.estado=='abierta'?'cerrada':'abierta'}')">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
+  <button class="ghost" onclick="del('${s.id}')">Eliminar</button></div></div>`}).join('')||'<p class="mut">Aún no hay solicitudes. Crea la primera.</p>';
+}
+async function est(id,v){await sb.from('solicitudes').update({estado:v}).eq('id',id);lista()}
+async function del(id){if(confirm('¿Eliminar la solicitud y todos sus datos?')){await sb.from('solicitudes').delete().eq('id',id);lista()}}
+async function reab(id,b){if(!confirm(`¿Reabrir ${b}? Se borrarán sus filas enviadas.`))return;
+  await sb.from('registros').delete().eq('solicitud_id',id).eq('bodega',b);
+  await sb.from('solicitud_bodegas').update({estado:'pendiente',enviado_at:null}).eq('solicitud_id',id).eq('bodega',b);ver(id)}
+let R=[];
+async function ver(id){
+  const[r,b]=await Promise.all([sb.from('registros').select('*').eq('solicitud_id',id).order('bodega').limit(10000),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega')]);
+  R=r.data;
+  $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button><button onclick="csv()">Exportar a Excel (CSV)</button></div>
+  <h3>Bodegas (verde = enviado)</h3><div class="chips">${b.data.map(x=>`<span class="chip ${x.estado=='enviado'?'ok':''}">${x.bodega}${x.estado=='enviado'?` <a onclick="reab('${id}','${x.bodega}')" title="Reabrir">↺</a>`:''}</span>`).join('')}</div>
+  <h3>Consolidado · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead>
+  <tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+function csv(){
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+  const t='\ufeff'+[COL.join(';'),...R.map(x=>COL.map(c=>q(x[c])).join(';'))].join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='consolidado.csv';a.click();
+}
+</script></body></html>
