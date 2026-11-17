@@ -51,7 +51,6 @@ const fh=d=>new Date(d).toLocaleString('es-BO',{dateStyle:'short',timeStyle:'sho
 const st=x=>x.procesado_at?'✅ Procesado':x.visto_at?'👁 Visto':'⏳ Pendiente';
 const mk=v=>document.querySelectorAll('.chips input:not(:disabled)').forEach(i=>i.checked=!!v);
 function dl(n,rows){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\n')],{type:'text/csv'}));a.download=n;a.click()}
-addEventListener('hashchange',init);init();
 function init(){location.hash=='#admin'?admin():portal()}
 
 /* ================= PORTAL DE BODEGAS (con usuario y clave) ================= */
@@ -63,7 +62,7 @@ async function ingresar(){const b=$('#lb').value,c=$('#lc').value;if(!b||!c)retu
   const{data,error}=await sb.rpc('login_bodega',{p_bod:b,p_clave:c});if(error||!data.ok)return alert(error?error.message:data.error);
   sessionStorage.tk=data.token;sessionStorage.bod=data.bodega;portal()}
 async function portal(){
-  if(!TK())return app.innerHTML=head('Portal de bodegas')+`<main><div class="card" style="max-width:380px;margin:auto"><h2>Ingreso de bodega</h2><select id="lb"><option value="">Elige tu bodega</option>${BOD.map(b=>`<option>${b}</option>`).join('')}</select><input id="lc" type="password" placeholder="Clave de tu bodega" onkeydown="event.key=='Enter'&&ingresar()"><button onclick="ingresar()">Ingresar</button><p class="mut" style="font-size:14px">¿Sin clave u olvidaste la tuya? Pídela al administrador.</p></div></main>`;
+  if(!TK())return app.innerHTML=head('Portal de bodegas')+`<main><div class="card" style="max-width:380px;margin:auto"><h2>Ingreso de bodega</h2><select id="lb"><option value="">Elige tu bodega</option>${BOD.map(b=>`<option>${b}</option>`).join('')}</select><input id="lc" type="password" placeholder="Clave de tu bodega" onkeydown="event.key=='Enter'&&ingresar()"><button onclick="ingresar()">Ingresar</button><p class="mut" style="font-size:14px">Tu usuario y clave inicial es el código de tu bodega. Si no puedes entrar, pide al administrador que la restablezca.</p></div></main>`;
   app.innerHTML=head('Portal de bodegas',`<span class="tag">${sessionStorage.bod}</span><button class="ghost" onclick="salir()">Salir</button>`)+'<main id="m"><p class="mut">Cargando…</p></main>';
   const r=await rpc('bod_solicitudes',{});if(r.error)return $('#m').innerHTML='<div class="card">No se pudo cargar: '+e(r.error.message)+'</div>';
   S=r.data.sort((a,b)=>!!a.procesado_at-!!b.procesado_at);const p=S.filter(s=>!s.procesado_at).length;
@@ -205,20 +204,21 @@ async function ver(id){
 }
 
 /* ---- Accesos de bodegas ---- */
-let ACC={},K=[];
+let ACC={};
 async function accesos(){
   const r=await sb.rpc('admin_accesos');
-  if(r.error)return $('#m').innerHTML='<div class="card">'+e(r.error.message)+'<br>¿Ya ejecutaste migracion_supabase.sql en Supabase?</div>';
+  if(r.error)return $('#m').innerHTML='<div class="card">'+e(r.error.message)+'<br>¿Ya ejecutaste las migraciones SQL en Supabase?</div>';
   ACC=Object.fromEntries(r.data.map(x=>[x.bodega,x]));const falt=BOD.filter(b=>!ACC[b]).length;
-  $('#m').innerHTML=`<div class="card"><h2>Accesos de bodegas</h2><p class="mut">Usuario = código de bodega. Las claves se muestran una sola vez al generarlas; si una bodega la olvida, se restablece.</p>
-  <button onclick="gen('')" ${falt?'':'disabled'}>Generar claves faltantes (${falt})</button></div><div id="cl"></div>
-  <div class="tw"><table style="min-width:600px"><thead><tr><th>BODEGA</th><th>ESTADO</th><th>ÚLTIMO INGRESO</th><th></th></tr></thead><tbody>${BOD.map(b=>{const a=ACC[b];return `<tr><td style="padding:8px"><b>${b}</b></td><td>${a?(a.bloqueada?'🔒 Bloqueada':'✅ Con clave'):'⚠️ Sin clave'}</td><td>${a?.ultimo_acceso?fh(a.ultimo_acceso):'–'}</td><td><button class="ghost" onclick="gen('${b}')">${a?'Restablecer':'Crear clave'}</button></td></tr>`}).join('')}</tbody></table></div>`;
+  $('#m').innerHTML=`<div class="card"><h2>Accesos de bodegas</h2><p class="mut">Usuario y clave inicial = código de la bodega (ej. B301 / B301). Puedes cambiar la clave de cualquiera cuando haga falta; al cambiarla se desbloquea y se cierra su sesión.</p>
+  <button onclick="clave('')" ${falt?'':'disabled'}>Crear claves faltantes (${falt})</button></div>
+  <div class="tw"><table style="min-width:600px"><thead><tr><th>BODEGA</th><th>CLAVE</th><th>ÚLTIMO INGRESO</th><th></th></tr></thead><tbody>${BOD.map(b=>{const a=ACC[b];return `<tr><td style="padding:8px"><b>${b}</b></td><td>${a?(a.bloqueada?'🔒 Bloqueada (15 min)':a.personalizada?'🔑 Personalizada':'✅ Igual al código'):'⚠️ Sin clave'}</td><td>${a?.ultimo_acceso?fh(a.ultimo_acceso):'–'}</td><td><button class="ghost" onclick="clave('${b}')">Cambiar clave</button></td></tr>`}).join('')}</tbody></table></div>`;
 }
-async function gen(b){
+async function clave(b){
+  let c=null;
+  if(b){c=prompt(`Nueva clave para ${b} (mínimo 4 caracteres).\nDéjala vacía para volver a ${b}.`);if(c===null)return;c=c.trim()||null}
   const l=b?[b]:BOD.filter(x=>!ACC[x]);if(!l.length)return;
-  if(b&&ACC[b]&&!confirm(`¿Generar una clave nueva para ${b}? La anterior dejará de funcionar.`))return;
-  const r=await sb.rpc('admin_generar_claves',{p_bodegas:l});if(r.error)return alert(r.error.message);
-  K=r.data;await accesos();
-  $('#cl').innerHTML=`<div class="card note"><b>Claves nuevas: anótalas ahora, no se volverán a mostrar.</b><table class="dr">${K.map(x=>`<tr><th>${x.bodega}</th><td>${x.clave}</td></tr>`).join('')}</table><button onclick="dl('claves_bodegas.csv',[['bodega','clave'],...K.map(x=>[x.bodega,x.clave])])">Descargar CSV</button></div>`;
+  const r=await sb.rpc('admin_asignar_claves',{p_bodegas:l,p_clave:c});if(r.error)return alert(r.error.message);
+  alert(b?`Clave de ${b} actualizada${c?'':' (vuelve a ser '+b+')'}.`:'Listo: cada bodega entra con su código como clave.');accesos();
 }
+addEventListener('hashchange',init);init();
 </script></body></html>
