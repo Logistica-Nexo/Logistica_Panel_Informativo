@@ -14,7 +14,7 @@ header small{display:block;font-weight:300;opacity:.8}header .r{margin-left:auto
 main{max-width:1100px;margin:24px auto;padding:0 16px}
 h2,h3{margin:.3em 0 .6em}.mut{color:var(--m)}
 .card{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(27,33,84,.12)}
-input,select{width:100%;padding:10px 12px;margin:4px 0 10px;border:1.5px solid #d5d8ee;border-radius:9px;font:inherit;background:#fff}
+input,select,textarea{width:100%;padding:10px 12px;margin:4px 0 10px;border:1.5px solid #d5d8ee;border-radius:9px;font:inherit;background:#fff}
 input:focus,select:focus{outline:3px solid #5046e540;border-color:var(--p)}
 input.lk{background:#eceefb;color:var(--p2);font-weight:600}
 button{background:var(--p);color:#fff;border:0;border-radius:9px;padding:10px 18px;font:600 15px Outfit,sans-serif;cursor:pointer}
@@ -72,11 +72,14 @@ async function portal(){
 const fx=d=>d?new Date(d+'T00:00').toLocaleDateString('es-BO',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).toUpperCase():'';
 const fc=d=>new Date(d+'T00:00').toLocaleDateString('es-BO',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}).toUpperCase();
 function recojo(s){const d=s.recojo_desde,h=s.recojo_hasta;if(!d)return'';return `<tr class="g"><th>📅 FECHA DE RECOJO:</th><td>${h&&h!=d?`DEL ${fc(d)} AL ${fc(h)}`:fx(d)}</td></tr>`}
+const fd=d=>d?d.split('-').reverse().join('/'):'';
+function lotes(s){const a=Array.isArray(s.cond_lotes)?s.cond_lotes:[];return a.length?a:(s.cond_activa&&(s.cond_lote||s.cond_fecha)?[{lote:s.cond_lote,fecha:s.cond_fecha}]:[])}
+function lvRow(s){if(!(s.codigo||s.producto||s.cond_activa))return'';const L=lotes(s),t=L.length?L.map(x=>[x.lote&&'LOTE '+x.lote,x.fecha&&'VENCE '+fd(x.fecha)].filter(Boolean).join(' · ')):['TODO EL STOCK'];return `<tr><th>LOTE / VENCIMIENTO:</th><td class="big">${t.map(e).join('<br>')}</td></tr>`}
 function datos(s){
   const r=(k,v,c='')=>v?`<tr><th>${k}</th><td class="${c}">${e(v)}</td></tr>`:'';
-  const lv=s.cond_activa?[s.cond_lote&&'LOTE '+s.cond_lote,s.cond_fecha&&'VENCE '+s.cond_fecha].filter(Boolean).join(' · '):'TODO EL STOCK';
+  
   return `<table class="dr">${s.codigo||s.producto?`<tr class="y"><th>COD SKU:<br>DESCRIPCIÓN:</th><td>${e(s.codigo)} &nbsp; ${e(s.producto)}</td></tr>`:''}
-  ${s.codigo||s.producto||s.cond_activa?r('LOTE / VENCIMIENTO:',lv,'big'):''}${r('PROVEEDOR:',s.proveedor)}${r('MOTIVO:',s.motivo)}${r('BODEGAS DESTINO:',s.destino)}${recojo(s)}${r('PLAZO PARA PROCESAR:',fx(s.plazo))}${r('RÓTULO:',s.rotulo)}</table>`;
+  ${lvRow(s)}${r('PROVEEDOR:',s.proveedor)}${r('MOTIVO:',s.motivo)}${r('BODEGAS DESTINO:',s.destino)}${recojo(s)}${r('PLAZO PARA PROCESAR:',fx(s.plazo))}${r('RÓTULO:',s.rotulo)}</table>`;
 }
 function card(s){
   const info=s.tipo=='informativa',ok=!!(s.procesado_at||(info&&s.visto_at));
@@ -94,15 +97,17 @@ function fill(id){
   <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}')">Enviar información</button><button class="ghost" onclick="send('${id}',1)">Sin existencias</button></div>`;
   addRow();
 }
+function selLote(el){const tr=el.closest('tr'),m=lotes(CUR).filter(y=>y.lote==el.value),x=m.length==1?m[0]:null,f=tr.querySelector('[data-c=fecha_vencimiento]');f.value=x?.fecha||'';f.readOnly=!!x?.fecha;f.classList.toggle('lk',!!x?.fecha)}
 function addRow(){
-  const s=CUR,c=s.cond_activa;
+  const s=CUR,L=lotes(s),conL=L.some(x=>x.lote),one=L.length==1,l0=L[0]||{};
   const i=(k,t='text',v='',ro=false)=>`<td><input data-c="${k}" type="${t}" value="${e(v)}" ${ro?'readonly class="lk"':''}></td>`;
-  $('#rows').insertAdjacentHTML('beforeend','<tr>'+i('codigo','text',s.codigo)+i('descripcion','text',s.producto||s.descripcion)+i('unidad')+i('cantidad','number')
-   +i('fecha_vencimiento','date',c?s.cond_fecha:'',c&&!!s.cond_fecha)+i('lote','text',c?s.cond_lote:'',c&&!!s.cond_lote)+i('proveedor')
-   +'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
+  const sel=(k,o,ph,fn='')=>`<td><select data-c="${k}" ${fn}><option value="">${ph}</option>${o.map(([v,t])=>`<option value="${e(v)}">${e(t)}</option>`).join('')}</select></td>`;
+  const fch=!conL&&L.length>1?sel('fecha_vencimiento',[...new Set(L.map(x=>x.fecha).filter(Boolean))].map(d=>[d,fd(d)]),'Elige fecha'):i('fecha_vencimiento','date',one?l0.fecha||'':'',one&&!!l0.fecha);
+  const lot=conL&&!one?sel('lote',[...new Set(L.map(x=>x.lote).filter(Boolean))].map(v=>[v,v]),'Elige lote','onchange="selLote(this)"'):i('lote','text',one?l0.lote||'':'',one&&!!l0.lote);
+  $('#rows').insertAdjacentHTML('beforeend','<tr>'+i('codigo','text',s.codigo)+i('descripcion','text',s.producto||s.descripcion)+i('unidad')+i('cantidad','number')+fch+lot+i('proveedor')+'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
 }
 async function send(id,empty){
-  const b=sessionStorage.bod,f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input')].map(i=>[i.dataset.c,i.value.trim()||null]))).filter(r=>r.cantidad||r.lote||r.proveedor);
+  const b=sessionStorage.bod,f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input,select')].map(i=>[i.dataset.c,i.value.trim()||null]))).filter(r=>r.cantidad||r.lote||r.proveedor);
   if(!empty){if(!f.length)return alert('Agrega al menos una fila');if(f.some(r=>!r.codigo||!r.cantidad))return alert('Código y cantidad son obligatorios en cada fila')}
   if(!confirm(empty?`¿Confirmas que ${b} no tiene existencias?`:`¿Enviar ${f.length} fila(s) de ${b}? No podrás editarlas después.`))return;
   const r=await rpc('enviar_bodega',{p_sol:id,p_filas:f,p_sin_existencias:!!empty});
@@ -114,7 +119,7 @@ async function send(id,empty){
 async function admin(){
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return app.innerHTML=head('Administrador')+'<main><div class="card" style="max-width:380px;margin:auto"><h2>Acceso administrador</h2><input id="em" placeholder="Correo"><input id="pw" type="password" placeholder="Contraseña"><button onclick="login()">Ingresar</button></div></main>';
-  app.innerHTML=head('Administrador','<button class="ghost" onclick="sb.auth.signOut().then(admin)">Salir</button>')+'<main><div class="row" style="margin-bottom:14px"><button onclick="dash()">📊 Dashboard</button><button class="ghost" onclick="lista()">Solicitudes</button><button class="ghost" onclick="nueva()">+ Nueva solicitud</button><button class="ghost" onclick="oper()">📦 Operador</button><button class="ghost" onclick="accesos()">🔑 Accesos de bodegas</button></div><div id="m"></div></main>';
+  app.innerHTML=head('Administrador','<button class="ghost" onclick="sb.auth.signOut().then(admin)">Salir</button>')+'<main><div class="row" style="margin-bottom:14px"><button onclick="dash()">📊 Dashboard</button><button class="ghost" onclick="lista()">Solicitudes</button><button class="ghost" onclick="nueva()">+ Nueva solicitud</button><button class="ghost" onclick="oper()">📦 Operador</button><button class="ghost" onclick="contactos()">📱 Contactos</button><button class="ghost" onclick="accesos()">🔑 Accesos de bodegas</button></div><div id="m"></div></main>';
   dash();
 }
 async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});error?alert(error.message):admin()}
@@ -192,12 +197,14 @@ function nueva(){
   <div class="g2"><div><label class="mut">📅 Recojo: desde</label><input id="rd" type="date"></div><div><label class="mut">Recojo: hasta (vacío = un solo día)</label><input id="rh" type="date"></div></div>
   <input id="d" placeholder="Instrucciones adicionales (opcional)">
   <label class="mut">Documento adjunto (opcional)</label><input id="f" type="file">
-  <label class="sw"><input type="checkbox" id="ca" onchange="$('#cb').hidden=!this.checked"> Aplicar condición de lote y/o fecha (si no, se muestra TODO EL STOCK)</label>
-  <div id="cb" class="g2" hidden><input id="cl" placeholder="Lote"><input id="cf" type="date"></div>
+  <label class="sw"><input type="checkbox" id="ca" onchange="$('#cb').hidden=!this.checked;if(this.checked&&!$('#lt').children.length)addLote()"> Aplicar condición de lote y/o fecha (si no, se muestra TODO EL STOCK)</label>
+  <div id="cb" hidden><div id="lt"></div><button class="ghost" onclick="addLote()">+ Agregar lote</button>
+  <div class="g2"><div><label class="mut">Fecha común (se aplica a los lotes que no tengan fecha propia)</label><input id="cf" type="date"></div></div></div>
   <h3>Bodegas destinatarias <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
   <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div>
   <button onclick="crear()">Publicar solicitud</button></div>`;
 }
+function addLote(){$('#lt').insertAdjacentHTML('beforeend','<div class="g2 lr" style="grid-template-columns:2fr 2fr auto"><input class="ll" placeholder="Lote"><input class="lf" type="date" title="Fecha de vencimiento"><button class="x" onclick="this.parentElement.remove()">✕</button></div>')}
 async function crear(){
   const bs=[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
   if(!$('#t').value.trim()||!bs.length)return alert('Falta el título o elegir bodegas');
@@ -206,7 +213,10 @@ async function crear(){
   let url=null;const fl=$('#f').files[0];
   if(fl){const p=Date.now()+'_'+fl.name.replace(/[^\w.]/g,'_'),u=await sb.storage.from('docs').upload(p,fl);if(u.error)return alert(u.error.message);url=sb.storage.from('docs').getPublicUrl(p).data.publicUrl}
   const ca=$('#ca').checked,v=id=>$(id).value.trim()||null;
-  const{data,error}=await sb.from('solicitudes').insert({tipo:$('#tp').value,titulo:v('#t'),producto:v('#p'),codigo:v('#c'),proveedor:v('#pv'),motivo:v('#mo'),rotulo:v('#ro'),destino:v('#de'),plazo:v('#pz'),recojo_desde:v('#rd'),recojo_hasta:v('#rh'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lote:ca?v('#cl'):null,cond_fecha:ca?v('#cf'):null}).select().single();
+  let lots=ca?[...document.querySelectorAll('.lr')].map(r=>({lote:r.querySelector('.ll').value.trim()||null,fecha:r.querySelector('.lf').value||$('#cf').value||null})).filter(x=>x.lote||x.fecha):[];
+  if(ca&&!lots.length&&$('#cf').value)lots=[{lote:null,fecha:$('#cf').value}];
+  if(ca&&!lots.length)return alert('Agrega al menos un lote o una fecha, o desmarca la condición');
+  const{data,error}=await sb.from('solicitudes').insert({tipo:$('#tp').value,titulo:v('#t'),producto:v('#p'),codigo:v('#c'),proveedor:v('#pv'),motivo:v('#mo'),rotulo:v('#ro'),destino:v('#de'),plazo:v('#pz'),recojo_desde:v('#rd'),recojo_hasta:v('#rh'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lotes:lots}).select().single();
   if(error)return alert(error.message);
   const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:data.id,bodega:b})));
   r.error?alert(r.error.message):lista();
@@ -217,7 +227,7 @@ async function lista(){
   return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h3>${datos(s)}
   <div class="sb"><i class="p" style="width:${p/n*100}%"></i><i class="v" style="width:${v/n*100}%"></i></div>
   <p class="mut">${p} ${info?'vistas':'enviadas'}${info?'':` · ${v} abiertas sin enviar`} · ${x.length-p-v} pendientes${info?'':` · ${x.filter(y=>y.recibido_at).length} recibidas`} · de ${x.length} bodegas${x.length?'':' — asigna bodegas para medir el avance'}</p>
-  <div class="row"><button onclick="ver('${s.id}')">Ver detalle</button><button class="ghost" onclick="asignar('${s.id}')">Asignar bodegas</button>
+  <div class="row"><button onclick="ver('${s.id}')">Ver detalle</button><button class="ghost" onclick="asignar('${s.id}')">Asignar bodegas</button><button class="ghost" onclick="wa('${s.id}')">📲 Avisar por WhatsApp</button>
   <button class="ghost" onclick="est('${s.id}','${s.estado=='abierta'?'cerrada':'abierta'}')">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
   <button class="ghost" onclick="del('${s.id}')">Eliminar</button></div></div>`}).join('')||'<p class="mut">Aún no hay solicitudes. Crea la primera.</p>';
 }
@@ -244,6 +254,41 @@ async function ver(id){
   ${info?'':`<h3>Consolidado · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead>
   <tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}`;
 }
+
+/* ---- Contactos y aviso por WhatsApp (manual, gratis) ---- */
+let CT={},WS=new Set(),WM={},WL=[];
+const tel=v=>{let d=String(v).replace(/\D/g,'');if(d.length==8)d='591'+d;return d};
+async function contactos(){
+  const r=await sb.from('bodega_contactos').select('*').order('bodega');
+  if(r.error)return $('#m').innerHTML='<div class="card">'+e(r.error.message)+'<br>¿Ya ejecutaste migracion_5_whatsapp_lotes.sql?</div>';
+  CT={};r.data.forEach(c=>(CT[c.bodega]??=[]).push(c));
+  const bs=[...new Set([...BOD,...Object.keys(CT)])].sort();
+  $('#m').innerHTML=`<div class="card"><h2>Contactos de WhatsApp</h2><p class="mut">Puedes sumar más de un número por bodega. Escribe 8 dígitos o con +591.</p></div>
+  <div class="tw"><table style="min-width:640px"><thead><tr><th>BODEGA</th><th>NÚMEROS</th><th>AGREGAR</th></tr></thead><tbody>${bs.map(b=>`<tr><td style="padding:8px"><b>${b}</b></td><td>${(CT[b]||[]).map(c=>`<span class="chip">+${c.telefono} <a onclick="delTel(${c.id})" title="Quitar">✕</a></span>`).join(' ')||'<span class="mut">⚠️ sin número</span>'}</td><td><div class="row"><input id="n_${b}" placeholder="Nuevo número" style="margin:0;max-width:170px"><button class="ghost" onclick="addTel('${b}')">+ Agregar</button></div></td></tr>`).join('')}</tbody></table></div>`;
+}
+async function addTel(b){const t=tel($('#n_'+b).value);if(t.length<11)return alert('Número inválido');const r=await sb.from('bodega_contactos').insert({bodega:b,telefono:t});r.error?alert(r.error.code=='23505'?'Ese número ya está en esa bodega':r.error.message):contactos()}
+async function delTel(id){if(confirm('¿Quitar este número?')){await sb.from('bodega_contactos').delete().eq('id',id);contactos()}}
+async function wa(id){
+  const[s,b,c]=await Promise.all([sb.from('solicitudes').select('*').eq('id',id).single(),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega'),sb.from('bodega_contactos').select('*')]);
+  if(c.error)return alert(c.error.message+'\n¿Ya ejecutaste migracion_5_whatsapp_lotes.sql?');
+  WS=new Set();WM={b:b.data,c:c.data};const x=s.data,info=x.tipo=='informativa',link=location.origin+location.pathname,
+   rj=x.recojo_desde?(x.recojo_hasta&&x.recojo_hasta!=x.recojo_desde?`del ${fd(x.recojo_desde)} al ${fd(x.recojo_hasta)}`:fd(x.recojo_desde)):'';
+  const msg=`📢 *LOGÍSTICA INVERSA* · Hola Bodega {bodega}\n\n*${x.titulo}*\n${info?'Solo información: ingresa al portal y marca "Visto".':'Debes llenar la información en el portal.'}${x.plazo?`\n⏰ Plazo para procesar: ${fd(x.plazo)}`:''}${rj?`\n📅 Fecha de recojo: ${rj}`:''}\n\n🔗 ${link}\nIngresa con tu código de bodega y tu clave.`;
+  $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button></div><h2>📲 Avisar por WhatsApp · ${e(x.titulo)}</h2>
+  <div class="card"><label class="mut">Mensaje (puedes editarlo; {bodega} se cambia por el código de cada bodega)</label><textarea id="wm" rows="9">${e(msg)}</textarea>
+  <label class="sw"><input type="checkbox" id="wp" onchange="wlist()"> Solo bodegas pendientes (recordatorio)</label>
+  <p class="mut">Sale desde el WhatsApp que tengas abierto en WhatsApp Web / Escritorio (tu número madre). Cada botón abre el chat con el mensaje listo: solo pulsas enviar y vuelves aquí.</p>
+  <div class="row"><button onclick="wnext()">▶ Enviar al siguiente</button><span id="wc" class="mut"></span></div></div><div id="wl"></div>`;
+  wlist();
+}
+function wlist(){
+  const pend=$('#wp').checked;
+  WL=WM.b.filter(x=>!pend||!x.procesado_at).flatMap(x=>{const cs=WM.c.filter(c=>c.bodega==x.bodega);return cs.length?cs.map(c=>({b:x.bodega,t:c.telefono})):[{b:x.bodega,t:null}]});
+  $('#wl').innerHTML=`<div class="tw"><table style="min-width:520px"><thead><tr><th>BODEGA</th><th>NÚMERO</th><th></th></tr></thead><tbody>${WL.map((w,i)=>`<tr><td style="padding:8px"><b>${w.b}</b></td><td>${w.t?'+'+w.t:'⚠️ sin número'}</td><td>${w.t?`<button class="ghost" onclick="wsend(${i})">${WS.has(w.b+w.t)?'✅ Abierto · reabrir':'💬 Enviar'}</button>`:''}</td></tr>`).join('')}</tbody></table></div>`;
+  $('#wc').textContent=`${WL.filter(w=>w.t&&WS.has(w.b+w.t)).length} de ${WL.filter(w=>w.t).length} chats abiertos`;
+}
+function wsend(i){const w=WL[i],m=$('#wm').value.replace(/\{bodega\}/g,w.b);window.open(`https://wa.me/${w.t}?text=${encodeURIComponent(m)}`,'_blank');WS.add(w.b+w.t);wlist()}
+function wnext(){const i=WL.findIndex(w=>w.t&&!WS.has(w.b+w.t));i<0?alert('Ya abriste todos los chats de la lista ✅'):wsend(i)}
 
 /* ---- Accesos de bodegas ---- */
 let ACC={};
