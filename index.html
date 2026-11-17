@@ -5,12 +5,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
-:root{--p:#5046E5;--p2:#3F4FA8;--d:#1B2154;--bg:#F2F3FA;--t:#1d2040;--m:#6b7099;--ok:#1f9d6b}
+:root{--p:#5046E5;--p2:#3F4FA8;--d:#1B2154;--bg:#F2F3FA;--t:#1d2040;--m:#6b7099;--ok:#1f9d6b;--w:#f0b429}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;font:16px/1.5 Outfit,system-ui,sans-serif;background:var(--bg);color:var(--t)}
 header{background:linear-gradient(110deg,var(--d),var(--p2) 70%,var(--p));color:#fff;display:flex;align-items:center;gap:14px;padding:14px 24px}
 header img{width:46px;height:46px;border-radius:12px}header h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.02em}
-header small{display:block;font-weight:300;opacity:.8}header .r{margin-left:auto}
+header small{display:block;font-weight:300;opacity:.8}header .r{margin-left:auto;display:flex;gap:8px;align-items:center}
 main{max-width:1100px;margin:24px auto;padding:0 16px}
 h2,h3{margin:.3em 0 .6em}.mut{color:var(--m)}
 .card{background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:14px;box-shadow:0 1px 3px rgba(27,33,84,.12)}
@@ -18,17 +18,21 @@ input,select{width:100%;padding:10px 12px;margin:4px 0 10px;border:1.5px solid #
 input:focus,select:focus{outline:3px solid #5046e540;border-color:var(--p)}
 input.lk{background:#eceefb;color:var(--p2);font-weight:600}
 button{background:var(--p);color:#fff;border:0;border-radius:9px;padding:10px 18px;font:600 15px Outfit,sans-serif;cursor:pointer}
-button:hover{background:var(--p2)}button.ghost{background:#e6e8f8;color:var(--p2)}button.x{background:none;color:#c0392b;padding:4px 8px}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button:hover{background:var(--p2)}button:disabled{opacity:.5;cursor:default}button.ghost{background:#e6e8f8;color:var(--p2)}button.x{background:none;color:#c0392b;padding:4px 8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row select{width:auto}
 .tag{background:#e6e8f8;color:var(--p2);border-radius:20px;padding:2px 12px;font-size:13px;font-weight:600}
-.note{background:#fff7e0;border-left:4px solid #f0b429;padding:10px 14px;border-radius:8px}
+.tag.st{background:#fff3cd;color:#8a6100}.tag.st.ok{background:#e3f6ee;color:var(--ok)}
+.note{background:#fff7e0;border-left:4px solid var(--w);padding:10px 14px;border-radius:8px}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 16px}
 .chip{background:#fff;border:1.5px solid #d5d8ee;border-radius:9px;padding:6px 12px;font-weight:600;cursor:pointer}
-.chip input{width:auto;margin:0 6px 0 0}.chip.ok{background:#e3f6ee;border-color:var(--ok);color:var(--ok)}.chip a{cursor:pointer}
+.chip input{width:auto;margin:0 6px 0 0}.chip.ok{background:#e3f6ee;border-color:var(--ok);color:var(--ok)}.chip.vis{background:#fff3cd;border-color:var(--w);color:#8a6100}.chip a{cursor:pointer}
 .sw{display:flex;gap:8px;align-items:center;font-weight:600;margin:6px 0 10px}.sw input{width:auto;margin:0}
-.bar{height:10px;background:#e6e8f8;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--p),var(--ok))}
+.sb{display:flex;height:12px;background:#e6e8f8;border-radius:6px;overflow:hidden;min-width:140px}.sb i{display:block;height:100%}.sb .p{background:var(--ok)}.sb .v{background:var(--w)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 14px}
+.kpi{background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 1px 3px rgba(27,33,84,.12)}.kpi b{display:block;font-size:30px;line-height:1.1}.kpi span{color:var(--m);font-size:13px}
 .tw{overflow-x:auto;background:#fff;border-radius:12px;margin:10px 0}table{border-collapse:collapse;width:100%;min-width:900px}
 th{background:var(--d);color:#fff;font-size:13px;padding:10px;text-align:left}td{padding:3px 4px;border-bottom:1px solid #eceefb}td input{margin:0}
+tr.cl{cursor:pointer}tr.cl:hover td{background:#f6f7fd}
 table.dr{min-width:0;border-collapse:separate;border-spacing:0 3px;margin:8px 0 12px}
 .dr th{background:var(--p2);width:200px;font-size:12px;padding:10px 12px;vertical-align:middle}
 .dr td{background:#fff;padding:10px 14px;font-weight:600;border:1.5px solid #d5d8ee}
@@ -36,26 +40,34 @@ table.dr{min-width:0;border-collapse:separate;border-spacing:0 3px;margin:8px 0 
 @media(max-width:640px){.g2{grid-template-columns:1fr}.dr th{width:110px}}
 </style></head><body><div id="app"></div>
 <script>
-// ====== CONFIGURACIÓN: pega aquí los datos de tu proyecto Supabase (Settings > API) ======
 const SB_URL='https://fzztrlhuixkfwixsdwcc.supabase.co',SB_KEY='sb_publishable_sCHdAi4NeF0o44N0QeFX6A_hpQC3Tz0';
-// ==========================================================================================
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const BOD=[301,302,303,304,306,307,308,309,311,312,314,315,316,318,319,320,321,322,323,324,325,326,328,329,330,331,332,333,334,335,336,337,338,339,340,501,502,503,504,505,801,802,803].map(n=>'B'+n);
 const COL=['bodega','codigo','descripcion','unidad','cantidad','fecha_vencimiento','lote','proveedor'];
 const $=s=>document.querySelector(s),app=$('#app');
 const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const head=(sub,r='')=>`<header><img src="icon.jpg" alt="NEXOCORP"><h1>PANEL INFORMATIVO LOGÍSTICA<small>${sub}</small></h1><div class="r">${r}</div></header>`;
+const fh=d=>new Date(d).toLocaleString('es-BO',{dateStyle:'short',timeStyle:'short'});
+const st=x=>x.procesado_at?'✅ Procesado':x.visto_at?'👁 Visto':'⏳ Pendiente';
+const mk=v=>document.querySelectorAll('.chips input:not(:disabled)').forEach(i=>i.checked=!!v);
+function dl(n,rows){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\n')],{type:'text/csv'}));a.download=n;a.click()}
 addEventListener('hashchange',init);init();
 function init(){location.hash=='#admin'?admin():portal()}
 
-/* ================= PORTAL DE BODEGAS ================= */
-let S=[],SB=[],CUR;
+/* ================= PORTAL DE BODEGAS (con usuario y clave) ================= */
+let S=[],CUR;
+const TK=()=>sessionStorage.tk;
+async function rpc(f,a){const r=await sb.rpc(f,{p_token:TK(),...a});if(r.error&&/SESION_EXPIRADA/.test(r.error.message)){salir();r.error.message='Tu sesión venció. Ingresa de nuevo.'}return r}
+function salir(){sessionStorage.clear();portal()}
+async function ingresar(){const b=$('#lb').value,c=$('#lc').value;if(!b||!c)return alert('Elige tu bodega e ingresa la clave');
+  const{data,error}=await sb.rpc('login_bodega',{p_bod:b,p_clave:c});if(error||!data.ok)return alert(error?error.message:data.error);
+  sessionStorage.tk=data.token;sessionStorage.bod=data.bodega;portal()}
 async function portal(){
-  app.innerHTML=head('Portal de bodegas')+'<main id="m"><p class="mut">Cargando…</p></main>';
-  const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*')]);
-  if(a.error)return $('#m').innerHTML='<div class="card">No se pudo cargar: '+e(a.error.message)+'</div>';
-  S=a.data;SB=b.data;
-  $('#m').innerHTML='<h2>Solicitudes activas</h2>'+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
+  if(!TK())return app.innerHTML=head('Portal de bodegas')+`<main><div class="card" style="max-width:380px;margin:auto"><h2>Ingreso de bodega</h2><select id="lb"><option value="">Elige tu bodega</option>${BOD.map(b=>`<option>${b}</option>`).join('')}</select><input id="lc" type="password" placeholder="Clave de tu bodega" onkeydown="event.key=='Enter'&&ingresar()"><button onclick="ingresar()">Ingresar</button><p class="mut" style="font-size:14px">¿Sin clave u olvidaste la tuya? Pídela al administrador.</p></div></main>`;
+  app.innerHTML=head('Portal de bodegas',`<span class="tag">${sessionStorage.bod}</span><button class="ghost" onclick="salir()">Salir</button>`)+'<main id="m"><p class="mut">Cargando…</p></main>';
+  const r=await rpc('bod_solicitudes',{});if(r.error)return $('#m').innerHTML='<div class="card">No se pudo cargar: '+e(r.error.message)+'</div>';
+  S=r.data.sort((a,b)=>!!a.procesado_at-!!b.procesado_at);const p=S.filter(s=>!s.procesado_at).length;
+  $('#m').innerHTML=`<h2>Solicitudes de ${sessionStorage.bod}</h2><p class="mut">${p?`Tienes ${p} pendiente(s)`:'Estás al día 🎉'}</p>`+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
 }
 const fx=d=>d?new Date(d+'T00:00').toLocaleDateString('es-BO',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).toUpperCase():'';
 function datos(s){
@@ -65,21 +77,19 @@ function datos(s){
   ${s.codigo||s.producto||s.cond_activa?r('LOTE / VENCIMIENTO:',lv,'big'):''}${r('PROVEEDOR:',s.proveedor)}${r('MOTIVO:',s.motivo)}${r('BODEGAS DESTINO:',s.destino)}${r('PLAZO:',fx(s.plazo))}${r('RÓTULO:',s.rotulo)}</table>`;
 }
 function card(s){
-  const bs=SB.filter(x=>x.solicitud_id==s.id),last=localStorage.bod,info=s.tipo=='informativa';
-  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span></h3>
-  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}
-  ${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}
-  ${info?'':`<div class="row"><select id="b_${s.id}" style="max-width:260px"><option value="">Elige tu bodega</option>
-  ${bs.map(x=>`<option value="${x.bodega}" ${x.estado=='enviado'?'disabled':''} ${x.bodega==last?'selected':''}>${x.bodega}${x.estado=='enviado'?' · ya enviado':''}</option>`).join('')}</select>
-  <button onclick="fill('${s.id}')">Llenar información</button></div>`}</div>`;
+  const info=s.tipo=='informativa',ok=!!s.procesado_at;
+  const acc=info?(ok?`<span class="mut">Procesado el ${fh(s.procesado_at)}</span>`:`<button class="ghost" ${s.visto_at?'disabled':''} onclick="mark('${s.id}','visto')">${s.visto_at?'👁 Visto':'Marcar como visto'}</button><button onclick="mark('${s.id}','procesado')">✅ Marcar como procesado</button>`)
+    :(ok?`<span class="mut">${s.sin_existencias?'Sin existencias':'Enviado'} el ${fh(s.procesado_at)}</span>`:`<button onclick="fill('${s.id}')">Llenar información</button>`);
+  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Procesado':'Enviado'):s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
+  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}<div class="row">${acc}</div></div>`;
 }
+async function mark(id,x){if(x=='procesado'&&!confirm('¿Confirmas que ya procesaste esta información? No podrás deshacerlo.'))return;
+  const r=await rpc('bod_marcar',{p_sol:id,p_estado:x});r.error?alert(r.error.message):portal()}
 function fill(id){
-  const s=S.find(x=>x.id==id),b=$('#b_'+id).value;if(!b)return alert('Elige tu bodega primero');
-  localStorage.bod=b;CUR=s;
-  $('#m').innerHTML=`<button class="ghost" onclick="portal()">← Volver</button><h2>${e(s.titulo)} <span class="tag">${b}</span></h2>
-  ${datos(s)}
+  const s=S.find(x=>x.id==id),b=sessionStorage.bod;CUR=s;rpc('bod_marcar',{p_sol:id,p_estado:'visto'});
+  $('#m').innerHTML=`<button class="ghost" onclick="portal()">← Volver</button><h2>${e(s.titulo)} <span class="tag">${b}</span></h2>${datos(s)}
   <div class="tw"><table><thead><tr>${['CÓDIGO','DESCRIPCIÓN','U. MEDIDA','CANTIDAD','F. VENCIMIENTO','LOTE','PROVEEDOR',''].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div>
-  <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}','${b}')">Enviar información</button><button class="ghost" onclick="send('${id}','${b}',1)">Sin existencias</button></div>`;
+  <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}')">Enviar información</button><button class="ghost" onclick="send('${id}',1)">Sin existencias</button></div>`;
   addRow();
 }
 function addRow(){
@@ -89,12 +99,12 @@ function addRow(){
    +i('fecha_vencimiento','date',c?s.cond_fecha:'',c&&!!s.cond_fecha)+i('lote','text',c?s.cond_lote:'',c&&!!s.cond_lote)+i('proveedor')
    +'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
 }
-async function send(id,b,empty){
-  const f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input')].map(i=>[i.dataset.c,i.value.trim()]))).filter(r=>r.cantidad||r.lote||r.proveedor);
+async function send(id,empty){
+  const b=sessionStorage.bod,f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input')].map(i=>[i.dataset.c,i.value.trim()||null]))).filter(r=>r.cantidad||r.lote||r.proveedor);
   if(!empty){if(!f.length)return alert('Agrega al menos una fila');if(f.some(r=>!r.codigo||!r.cantidad))return alert('Código y cantidad son obligatorios en cada fila')}
   if(!confirm(empty?`¿Confirmas que ${b} no tiene existencias?`:`¿Enviar ${f.length} fila(s) de ${b}? No podrás editarlas después.`))return;
-  const{error}=await sb.rpc('enviar_bodega',{p_sol:id,p_bod:b,p_filas:f});
-  if(error)return alert('No se pudo enviar: '+error.message);
+  const r=await rpc('enviar_bodega',{p_sol:id,p_filas:f,p_sin_existencias:!!empty});
+  if(r.error)return alert('No se pudo enviar: '+r.error.message);
   $('#m').innerHTML='<div class="card"><h2>✅ Información enviada</h2><p>Gracias, '+b+'.</p><button onclick="portal()">Volver a solicitudes</button></div>';
 }
 
@@ -102,15 +112,39 @@ async function send(id,b,empty){
 async function admin(){
   const{data:{session}}=await sb.auth.getSession();
   if(!session)return app.innerHTML=head('Administrador')+'<main><div class="card" style="max-width:380px;margin:auto"><h2>Acceso administrador</h2><input id="em" placeholder="Correo"><input id="pw" type="password" placeholder="Contraseña"><button onclick="login()">Ingresar</button></div></main>';
-  app.innerHTML=head('Administrador','<button class="ghost" onclick="sb.auth.signOut().then(admin)">Salir</button>')+'<main><div class="row" style="margin-bottom:14px"><button onclick="nueva()">+ Nueva solicitud</button><button class="ghost" onclick="lista()">Solicitudes</button></div><div id="m"></div></main>';
-  lista();
+  app.innerHTML=head('Administrador','<button class="ghost" onclick="sb.auth.signOut().then(admin)">Salir</button>')+'<main><div class="row" style="margin-bottom:14px"><button onclick="dash()">📊 Dashboard</button><button class="ghost" onclick="lista()">Solicitudes</button><button class="ghost" onclick="nueva()">+ Nueva solicitud</button><button class="ghost" onclick="accesos()">🔑 Accesos de bodegas</button></div><div id="m"></div></main>';
+  dash();
 }
 async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});error?alert(error.message):admin()}
-const mk=v=>document.querySelectorAll('.chips input').forEach(i=>i.checked=!!v);
-const tipo=()=>$('#bw').hidden=$('#tp').value=='informativa';
+
+/* ---- Dashboard ---- */
+let DS=[],DB=[],DR=[];
+async function dash(){
+  $('#m').innerHTML='<p class="mut">Cargando…</p>';
+  const[a,b]=await Promise.all([sb.from('solicitudes').select('id,titulo,tipo,estado,plazo').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
+  if(a.error||b.error)return $('#m').innerHTML='<div class="card">'+e((a.error||b.error).message)+'</div>';
+  DS=a.data;DB=b.data;
+  $('#m').innerHTML=`<div class="row"><select id="fs" onchange="pintar()" style="max-width:340px"><option value="">Todas las solicitudes abiertas</option>${DS.map(s=>`<option value="${s.id}">${e(s.titulo)}${s.estado=='cerrada'?' (cerrada)':''}</option>`).join('')}</select>
+  <select id="ft" onchange="pintar()"><option value="">Ambos tipos</option><option value="informativa">Solo información</option><option value="llenado">Con llenado</option></select><button class="ghost" onclick="dl('avance_bodegas.csv',[['bodega','asignadas','vistas','procesadas','pendientes','vencidas','avance_%'],...DR.map(o=>[o.b,o.n,o.v+o.p,o.p,o.n-o.p-o.v,o.venc,o.pc])])">Exportar CSV</button></div><div id="db"></div>`;
+  pintar();
+}
+function pintar(){
+  const fs=$('#fs').value,ft=$('#ft').value,hoy=new Date().toISOString().slice(0,10);
+  const L=DS.filter(s=>(fs?s.id==fs:s.estado=='abierta')&&(!ft||s.tipo==ft)),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={};
+  DB.filter(x=>sm[x.solicitud_id]).forEach(x=>{const o=by[x.bodega]??={b:x.bodega,n:0,v:0,p:0,venc:0,l:[]},pz=sm[x.solicitud_id].plazo;
+    o.n++;x.procesado_at?o.p++:x.visto_at&&o.v++;if(!x.procesado_at&&pz&&pz<hoy)o.venc++;o.l.push(x)});
+  DR=Object.values(by).map(o=>({...o,pc:Math.round(o.p/o.n*100)})).sort((a,b)=>a.pc-b.pc||b.n-a.n);
+  const T=DR.reduce((a,o)=>({n:a.n+o.n,v:a.v+o.v,p:a.p+o.p,venc:a.venc+o.venc}),{n:0,v:0,p:0,venc:0}),pct=x=>T.n?Math.round(x/T.n*100):0;
+  $('#db').innerHTML=`<div class="kpis"><div class="kpi"><b>${L.length}</b><span>Solicitudes en vista</span></div><div class="kpi"><b>${pct(T.p)}%</b><span>Procesado (${T.p} de ${T.n})</span></div><div class="kpi"><b>${pct(T.p+T.v)}%</b><span>Visto o procesado</span></div><div class="kpi"><b>${T.n-T.p-T.v}</b><span>Sin abrir</span></div><div class="kpi"><b style="color:${T.venc?'#c0392b':'inherit'}">${T.venc}</b><span>Vencidas sin procesar</span></div></div>
+  <h3>Avance por bodega <small class="mut">(verde = procesado · amarillo = visto · gris = pendiente) · clic para ver detalle</small></h3>
+  <div class="tw"><table><thead><tr><th>BODEGA</th><th>ASIGNADAS</th><th>VISTAS</th><th>PROCESADAS</th><th>PENDIENTES</th><th>VENCIDAS</th><th>AVANCE</th></tr></thead><tbody>${DR.map(o=>`<tr class="cl" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden"><td style="padding:10px"><b>${o.b}</b></td><td>${o.n}</td><td>${o.v+o.p}</td><td>${o.p}</td><td>${o.n-o.p-o.v}</td><td style="color:${o.venc?'#c0392b':'inherit'}">${o.venc||'–'}</td><td><div class="sb"><i class="p" style="width:${o.p/o.n*100}%"></i><i class="v" style="width:${o.v/o.n*100}%"></i></div> ${o.pc}%</td></tr>
+  <tr hidden><td colspan="7" style="padding:10px 16px;background:#f6f7fd">${o.l.map(x=>`${st(x)} · ${e(sm[x.solicitud_id].titulo)} <span class="mut">(${sm[x.solicitud_id].tipo=='informativa'?'info':'llenado'}${sm[x.solicitud_id].plazo?' · plazo '+sm[x.solicitud_id].plazo:''})</span>`).join('<br>')}</td></tr>`).join('')||'<tr><td colspan="7" style="padding:14px" class="mut">No hay solicitudes con bodegas asignadas.</td></tr>'}</tbody></table></div>`;
+}
+
+/* ---- Solicitudes ---- */
 function nueva(){
   $('#m').innerHTML=`<div class="card"><h2>Nueva solicitud</h2>
-  <select id="tp" onchange="tipo()"><option value="llenado">Con llenado: las bodegas cargan datos</option><option value="informativa">Solo información: las bodegas solo la ven</option></select>
+  <select id="tp"><option value="llenado">Con llenado: las bodegas cargan datos</option><option value="informativa">Solo información: las bodegas la ven y la marcan como vista/procesada</option></select>
   <input id="t" placeholder="Título (ej. Repliegue EVRA PROMEDICAL)">
   <div class="g2"><input id="c" placeholder="Código SKU (opcional)"><input id="p" placeholder="Descripción del producto (opcional)"></div>
   <input id="pv" placeholder="Proveedor (ej. 000184 PROMEDICAL S.A.)">
@@ -121,48 +155,70 @@ function nueva(){
   <label class="mut">Documento adjunto (opcional)</label><input id="f" type="file">
   <label class="sw"><input type="checkbox" id="ca" onchange="$('#cb').hidden=!this.checked"> Aplicar condición de lote y/o fecha (si no, se muestra TODO EL STOCK)</label>
   <div id="cb" class="g2" hidden><input id="cl" placeholder="Lote"><input id="cf" type="date"></div>
-  <div id="bw"><h3>Bodegas que deben llenar <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
-  <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div></div>
+  <h3>Bodegas destinatarias <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
+  <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div>
   <button onclick="crear()">Publicar solicitud</button></div>`;
 }
 async function crear(){
-  const info=$('#tp').value=='informativa',bs=info?[]:[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
-  if(!$('#t').value.trim()||(!info&&!bs.length))return alert('Falta el título o elegir bodegas');
+  const bs=[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
+  if(!$('#t').value.trim()||!bs.length)return alert('Falta el título o elegir bodegas');
   let url=null;const fl=$('#f').files[0];
   if(fl){const p=Date.now()+'_'+fl.name.replace(/[^\w.]/g,'_'),u=await sb.storage.from('docs').upload(p,fl);if(u.error)return alert(u.error.message);url=sb.storage.from('docs').getPublicUrl(p).data.publicUrl}
   const ca=$('#ca').checked,v=id=>$(id).value.trim()||null;
   const{data,error}=await sb.from('solicitudes').insert({tipo:$('#tp').value,titulo:v('#t'),producto:v('#p'),codigo:v('#c'),proveedor:v('#pv'),motivo:v('#mo'),rotulo:v('#ro'),destino:v('#de'),plazo:v('#pz'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lote:ca?v('#cl'):null,cond_fecha:ca?v('#cf'):null}).select().single();
   if(error)return alert(error.message);
-  if(!bs.length)return lista();
   const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:data.id,bodega:b})));
   r.error?alert(r.error.message):lista();
 }
 async function lista(){
-  const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*')]);
-  $('#m').innerHTML=a.data.map(s=>{const info=s.tipo=='informativa',x=b.data.filter(y=>y.solicitud_id==s.id),ok=x.filter(y=>y.estado=='enviado').length,pc=Math.round(ok/(x.length||1)*100);
+  const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
+  $('#m').innerHTML=a.data.map(s=>{const info=s.tipo=='informativa',x=b.data.filter(y=>y.solicitud_id==s.id),p=x.filter(y=>y.procesado_at).length,v=x.filter(y=>y.visto_at&&!y.procesado_at).length,n=x.length||1;
   return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h3>${datos(s)}
-  ${info?'':`<div class="bar"><i style="width:${pc}%"></i></div><p class="mut">${ok} de ${x.length} bodegas enviaron (${pc}%)</p>`}
-  <div class="row">${info?'':`<button onclick="ver('${s.id}')">Ver consolidado</button>`}
+  <div class="sb"><i class="p" style="width:${p/n*100}%"></i><i class="v" style="width:${v/n*100}%"></i></div>
+  <p class="mut">${p} ${info?'procesadas':'enviadas'} · ${v} solo vistas · ${x.length-p-v} pendientes · de ${x.length} bodegas${x.length?'':' — asigna bodegas para medir el avance'}</p>
+  <div class="row"><button onclick="ver('${s.id}')">Ver detalle</button><button class="ghost" onclick="asignar('${s.id}')">Asignar bodegas</button>
   <button class="ghost" onclick="est('${s.id}','${s.estado=='abierta'?'cerrada':'abierta'}')">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
   <button class="ghost" onclick="del('${s.id}')">Eliminar</button></div></div>`}).join('')||'<p class="mut">Aún no hay solicitudes. Crea la primera.</p>';
 }
 async function est(id,v){await sb.from('solicitudes').update({estado:v}).eq('id',id);lista()}
 async function del(id){if(confirm('¿Eliminar la solicitud y todos sus datos?')){await sb.from('solicitudes').delete().eq('id',id);lista()}}
-async function reab(id,b){if(!confirm(`¿Reabrir ${b}? Se borrarán sus filas enviadas.`))return;
-  await sb.from('registros').delete().eq('solicitud_id',id).eq('bodega',b);
-  await sb.from('solicitud_bodegas').update({estado:'pendiente',enviado_at:null}).eq('solicitud_id',id).eq('bodega',b);ver(id)}
+async function asignar(id){
+  const{data}=await sb.from('solicitud_bodegas').select('bodega').eq('solicitud_id',id),ya=new Set(data.map(x=>x.bodega));
+  $('#m').innerHTML=`<div class="card"><h2>Asignar bodegas</h2><p class="mut">Las ya asignadas aparecen bloqueadas.</p><div class="row"><button class="ghost" onclick="mk(1)">Todas</button><button class="ghost" onclick="mk(0)">Ninguna</button></div>
+  <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}" ${ya.has(b)?'checked disabled':''}>${b}</label>`).join('')}</div>
+  <div class="row"><button onclick="asig2('${id}')">Agregar seleccionadas</button><button class="ghost" onclick="lista()">Cancelar</button></div></div>`;
+}
+async function asig2(id){const bs=[...document.querySelectorAll('.chips input:checked:not(:disabled)')].map(i=>i.value);if(!bs.length)return alert('Elige al menos una bodega');
+  const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:id,bodega:b})));r.error?alert(r.error.message):lista()}
+async function reab(id,b,info){if(!confirm(info?`¿Quitar el "procesado" de ${b}?`:`¿Reabrir ${b}? Se borrarán sus filas enviadas.`))return;
+  if(!info)await sb.from('registros').delete().eq('solicitud_id',id).eq('bodega',b);
+  await sb.from('solicitud_bodegas').update({estado:'pendiente',enviado_at:null,procesado_at:null,sin_existencias:false}).eq('solicitud_id',id).eq('bodega',b);ver(id)}
 let R=[];
 async function ver(id){
-  const[r,b]=await Promise.all([sb.from('registros').select('*').eq('solicitud_id',id).order('bodega').limit(10000),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega')]);
-  R=r.data;
-  $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button><button onclick="csv()">Exportar a Excel (CSV)</button></div>
-  <h3>Bodegas (verde = enviado)</h3><div class="chips">${b.data.map(x=>`<span class="chip ${x.estado=='enviado'?'ok':''}">${x.bodega}${x.estado=='enviado'?` <a onclick="reab('${id}','${x.bodega}')" title="Reabrir">↺</a>`:''}</span>`).join('')}</div>
-  <h3>Consolidado · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead>
-  <tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const[s,r,b]=await Promise.all([sb.from('solicitudes').select('tipo,titulo').eq('id',id).single(),sb.from('registros').select('*').eq('solicitud_id',id).order('bodega').limit(10000),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega')]);
+  R=r.data;const info=s.data.tipo=='informativa',p=b.data.filter(x=>x.procesado_at).length,v=b.data.filter(x=>x.visto_at&&!x.procesado_at).length;
+  $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button>${info?'':'<button onclick="dl(\'consolidado.csv\',[COL,...R.map(x=>COL.map(c=>x[c]))])">Exportar a Excel (CSV)</button>'}</div>
+  <h2>${e(s.data.titulo)}</h2><p class="mut">${p} ${info?'procesadas':'enviadas'} · ${v} solo vistas · ${b.data.length-p-v} pendientes</p>
+  <h3>Bodegas (verde = ${info?'procesado':'enviado'} · amarillo = visto)</h3><div class="chips">${b.data.map(x=>`<span class="chip ${x.procesado_at?'ok':x.visto_at?'vis':''}" title="${x.procesado_at?fh(x.procesado_at):x.visto_at?'Visto '+fh(x.visto_at):'Pendiente'}">${x.bodega}${x.sin_existencias?' · sin stock':''}${x.procesado_at?` <a onclick="reab('${id}','${x.bodega}',${info})" title="Reabrir">↺</a>`:''}</span>`).join('')}</div>
+  ${info?'':`<h3>Consolidado · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead>
+  <tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}`;
 }
-function csv(){
-  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
-  const t='\ufeff'+[COL.join(';'),...R.map(x=>COL.map(c=>q(x[c])).join(';'))].join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='consolidado.csv';a.click();
+
+/* ---- Accesos de bodegas ---- */
+let ACC={},K=[];
+async function accesos(){
+  const r=await sb.rpc('admin_accesos');
+  if(r.error)return $('#m').innerHTML='<div class="card">'+e(r.error.message)+'<br>¿Ya ejecutaste migracion_supabase.sql en Supabase?</div>';
+  ACC=Object.fromEntries(r.data.map(x=>[x.bodega,x]));const falt=BOD.filter(b=>!ACC[b]).length;
+  $('#m').innerHTML=`<div class="card"><h2>Accesos de bodegas</h2><p class="mut">Usuario = código de bodega. Las claves se muestran una sola vez al generarlas; si una bodega la olvida, se restablece.</p>
+  <button onclick="gen('')" ${falt?'':'disabled'}>Generar claves faltantes (${falt})</button></div><div id="cl"></div>
+  <div class="tw"><table style="min-width:600px"><thead><tr><th>BODEGA</th><th>ESTADO</th><th>ÚLTIMO INGRESO</th><th></th></tr></thead><tbody>${BOD.map(b=>{const a=ACC[b];return `<tr><td style="padding:8px"><b>${b}</b></td><td>${a?(a.bloqueada?'🔒 Bloqueada':'✅ Con clave'):'⚠️ Sin clave'}</td><td>${a?.ultimo_acceso?fh(a.ultimo_acceso):'–'}</td><td><button class="ghost" onclick="gen('${b}')">${a?'Restablecer':'Crear clave'}</button></td></tr>`}).join('')}</tbody></table></div>`;
+}
+async function gen(b){
+  const l=b?[b]:BOD.filter(x=>!ACC[x]);if(!l.length)return;
+  if(b&&ACC[b]&&!confirm(`¿Generar una clave nueva para ${b}? La anterior dejará de funcionar.`))return;
+  const r=await sb.rpc('admin_generar_claves',{p_bodegas:l});if(r.error)return alert(r.error.message);
+  K=r.data;await accesos();
+  $('#cl').innerHTML=`<div class="card note"><b>Claves nuevas: anótalas ahora, no se volverán a mostrar.</b><table class="dr">${K.map(x=>`<tr><th>${x.bodega}</th><td>${x.clave}</td></tr>`).join('')}</table><button onclick="dl('claves_bodegas.csv',[['bodega','clave'],...K.map(x=>[x.bodega,x.clave])])">Descargar CSV</button></div>`;
 }
 </script></body></html>
