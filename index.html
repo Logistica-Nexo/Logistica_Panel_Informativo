@@ -39,8 +39,17 @@ button:hover{background:var(--p2)}button:disabled{opacity:.5;cursor:default}butt
 .hz-login h3{margin:0 0 8px;font-weight:600}.hz-login input,.hz-login select{background:#fff;color:var(--t)}.hz-login button{background:#fff;color:var(--p2);width:100%}.hz-login button:hover{background:#e6e8ff}.hz-login .mut{color:#b9bdf0;font-size:14px;margin:8px 0 0}
 .hz-foot{position:absolute;bottom:16px;left:40px;color:#8f94d9;font-size:13px}
 .sc{position:relative;height:560px;perspective:1100px}.sc-in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .18s ease-out}
-.tile{position:absolute;left:50%;top:50%;width:250px;height:250px;margin:-125px 0 0 -125px;border-radius:56px;background:linear-gradient(145deg,#8f8cff,#4b45e0 55%,#3a35c4);box-shadow:0 40px 80px #0008,inset 0 2px 0 #fff5;transform:translateZ(60px);display:grid;place-items:center;animation:fl 6s ease-in-out infinite}
-.tile img{width:64%;border-radius:30px;filter:drop-shadow(0 8px 14px #0006)}
+.tile{position:absolute;left:50%;top:50%;width:270px;height:270px;margin:-135px 0 0 -135px;transform-style:preserve-3d;transform:translateZ(60px);animation:fl 6s ease-in-out infinite,spin 12s linear infinite}
+.face{position:absolute;inset:0;border-radius:60px;background:linear-gradient(145deg,#8f8cff,#4b45e0 55%,#3a35c4);box-shadow:0 40px 80px #0008,inset 0 2px 0 #fff5;display:grid;place-items:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(7px)}
+.face.b{transform:rotateY(180deg) translateZ(7px)}
+.face img{width:64%;border-radius:32px;filter:drop-shadow(0 8px 14px #0006)}
+@keyframes spin{to{transform:translateZ(60px) rotateY(360deg)}}
+/* ===== Portal de bodegas: mismos tonos de la intro, solicitudes resaltadas ===== */
+.pt{min-height:100vh;background:radial-gradient(1100px 700px at 78% 0%,#3b3fd8 0%,#1d2166 45%,#0c0f36 100%)}
+.pt main{color:#fff}.pt .card,.pt .tw{color:var(--t)}.pt .mut{color:#b9bdf0}.pt .card .mut{color:var(--m)}
+.pt .wel{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.22);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.pt .card{border-left:7px solid var(--p);box-shadow:0 12px 32px #0007,0 0 0 1px rgba(255,255,255,.35)}
+.pt .card h3{font-size:20px}.pt .card.pend{border-left-color:var(--w)}.pt .card.ok{border-left-color:var(--ok)}.pt .card.cl{border-left-color:#e04b3c}
 .orb{position:absolute;left:50%;top:50%;border:1px dashed rgba(255,255,255,.28);border-radius:50%}
 .o1{width:440px;height:520px;margin:-260px 0 0 -220px;transform:rotateY(18deg) rotateZ(8deg)}
 .o2{width:400px;height:500px;margin:-250px 0 0 -200px;border:1px solid rgba(160,170,255,.35);transform:rotateX(68deg) rotateZ(-20deg)}
@@ -78,13 +87,9 @@ function init(){location.hash=='#admin'?admin():portal()}
 
 function hero(form,sub){return `<div class="hz"><div class="hz-in"><div><div class="hz-brand"><img src="icon.jpg" alt=""><span>NEXOCORP</span></div>
 <h1>Portal<br>Logística Inversa</h1><p class="sub">${sub}</p>
-<div class="hz-st"><div><b>${BOD.length}</b><span>bodegas</span></div><div><b>2</b><span>tipos de solicitud</span></div><div><b>3</b><span>etapas de seguimiento</span></div></div>
 <div class="hz-login">${form}</div></div>
-<div class="sc"><div class="sc-in"><div class="orb o1"></div><div class="orb o2"></div><div class="tile"><img src="icon.jpg" alt=""></div>
-<div class="fc" style="left:0;top:14%;transform:translateZ(110px)"><b>SOLICITUDES</b><span><i style="background:#2bd4a7"></i>con llenado</span></div>
-<div class="fc" style="right:0;top:6%;transform:translateZ(80px);animation-delay:-2s"><b>INFORMATIVAS</b><span><i style="background:#b57cff"></i>visto por bodega</span></div>
-<div class="fc" style="left:8%;bottom:12%;transform:translateZ(130px);animation-delay:-4s"><b>SEGUIMIENTO</b><span><i style="background:#ff9b3d"></i>por solicitud</span></div>
-<div class="fc" style="right:2%;bottom:5%;transform:translateZ(90px);animation-delay:-1s"><b>RECEPCIÓN</b><span><i style="background:#ffd23d"></i>operador logístico</span></div></div></div></div>
+<div class="sc"><div class="sc-in"><div class="orb o1"></div><div class="orb o2"></div><div class="tile"><div class="face"><img src="icon.jpg" alt=""></div><div class="face b"><img src="icon.jpg" alt=""></div></div>
+</div></div></div>
 <div class="hz-foot">Nexocorp · Logística Inversa · Uso interno</div></div>`}
 function tilt(){const sc=document.querySelector('.sc-in'),h=document.querySelector('.hz');if(!sc||!h)return;
   h.onmousemove=ev=>{sc.style.transform=`rotateY(${(ev.clientX/innerWidth-.5)*18}deg) rotateX(${-(ev.clientY/innerHeight-.5)*14}deg)`};h.onmouseleave=()=>{sc.style.transform=''}}
@@ -99,7 +104,7 @@ async function ingresar(){const b=$('#lb').value,c=$('#lc').value;if(!b||!c)retu
   sessionStorage.tk=data.token;sessionStorage.bod=data.bodega;portal()}
 async function portal(){
   if(!TK()){app.innerHTML=hero(`<h3>Ingreso de bodega</h3><select id="lb"><option value="">Elige tu bodega</option>${BOD.map(b=>`<option>${b}</option>`).join('')}</select><input id="lc" type="password" placeholder="Clave de tu bodega" onkeydown="event.key=='Enter'&&ingresar()"><button onclick="ingresar()">Ingresar</button><p class="mut">Tu usuario y clave inicial es el código de tu bodega. Si no puedes entrar, pide al administrador que la restablezca.</p>`,'Solicitudes, seguimiento y recepción de información entre las bodegas y logística.');return tilt()}
-  app.innerHTML=head('Portal Logística Inversa',`<span class="tag">${sessionStorage.bod}</span><button class="ghost" onclick="salir()">Salir</button>`)+'<main id="m"><p class="mut">Cargando…</p></main>';
+  app.innerHTML='<div class="pt">'+head('Portal Logística Inversa',`<span class="tag">${sessionStorage.bod}</span><button class="ghost" onclick="salir()">Salir</button>`)+'<main id="m"><p class="mut">Cargando…</p></main></div>';
   const r=await rpc('bod_solicitudes',{});if(r.error)return $('#m').innerHTML='<div class="card">No se pudo cargar: '+e(r.error.message)+'</div>';
   const k=s=>s.estado!='abierta'?2:s.procesado_at?1:0;S=r.data.sort((a,b)=>k(a)-k(b));const p=S.filter(s=>k(s)==0).length;
   $('#m').innerHTML=`<div class="wel"><h2>👋 Bienvenido, Bodega ${sessionStorage.bod}</h2><p>Portal Logística Inversa · ${p?`Tienes ${p} solicitud(es) pendiente(s)`:'Estás al día 🎉'}${S.some(s=>s.estado!='abierta')?' · Las solicitudes cerradas se ocultan solas en 2 días':''}</p></div>`+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
@@ -121,7 +126,7 @@ function card(s){
   const info=s.tipo=='informativa',ok=!!(s.procesado_at||(info&&s.visto_at)),cl=s.estado=='cerrada';
   const acc=info?(ok?`<span class="mut">Visto el ${fh(s.procesado_at||s.visto_at)}</span>`:`<button onclick="mark('${s.id}','visto')">👁 Marcar como visto</button>`)
     :(ok?`<span class="mut">${s.sin_existencias?'Sin existencias':'Enviado'} el ${fh(s.procesado_at)}</span>`:`<button onclick="fill('${s.id}')">Llenar información</button>`);
-  return `<div class="card" ${cl&&!ok?'style="opacity:.7"':''}><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Visto':'Enviado'):cl?'🔒 Cerrada':s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
+  return `<div class="card ${cl&&!ok?'cl':ok?'ok':'pend'}"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Visto':'Enviado'):cl?'🔒 Cerrada':s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
   ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}<div class="row">${cl&&!ok?'<span class="mut">🔒 Cerrada: venció el plazo sin completarse</span>':acc}</div></div>`;
 }
 async function mark(id,x){if(!confirm('¿Confirmas que ya viste esta información? Quedará registrado para el administrador.'))return;
