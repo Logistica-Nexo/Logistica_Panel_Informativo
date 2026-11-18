@@ -43,7 +43,7 @@ table.dr{min-width:0;border-collapse:separate;border-spacing:0 3px;margin:8px 0 
 <script>
 const SB_URL='https://fzztrlhuixkfwixsdwcc.supabase.co',SB_KEY='sb_publishable_sCHdAi4NeF0o44N0QeFX6A_hpQC3Tz0';
 const sb=supabase.createClient(SB_URL,SB_KEY);
-const BOD=[301,302,303,304,306,307,308,309,311,312,314,315,316,318,319,320,321,322,323,324,325,326,328,329,330,331,332,333,334,335,336,337,338,339,340,501,502,503,504,505,801,802,803].map(n=>'B'+n);
+const BOD=[301,302,303,304,306,307,308,309,311,312,314,315,316,318,319,320,321,322,323,324,325,328,329,330,331,332,333,334,335,336,337,338,339,501,502,503,504,505,801,802,803].map(n=>'B'+n);
 const COL=['bodega','codigo','descripcion','unidad','cantidad','fecha_vencimiento','lote','proveedor'];
 const $=s=>document.querySelector(s),app=$('#app');
 const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -66,12 +66,13 @@ async function portal(){
   if(!TK())return app.innerHTML=head('Portal Logística Inversa')+`<main><div class="card" style="max-width:380px;margin:auto"><h2>Ingreso de bodega</h2><select id="lb"><option value="">Elige tu bodega</option>${BOD.map(b=>`<option>${b}</option>`).join('')}</select><input id="lc" type="password" placeholder="Clave de tu bodega" onkeydown="event.key=='Enter'&&ingresar()"><button onclick="ingresar()">Ingresar</button><p class="mut" style="font-size:14px">Tu usuario y clave inicial es el código de tu bodega. Si no puedes entrar, pide al administrador que la restablezca.</p></div></main>`;
   app.innerHTML=head('Portal Logística Inversa',`<span class="tag">${sessionStorage.bod}</span><button class="ghost" onclick="salir()">Salir</button>`)+'<main id="m"><p class="mut">Cargando…</p></main>';
   const r=await rpc('bod_solicitudes',{});if(r.error)return $('#m').innerHTML='<div class="card">No se pudo cargar: '+e(r.error.message)+'</div>';
-  S=r.data.sort((a,b)=>!!a.procesado_at-!!b.procesado_at);const p=S.filter(s=>!s.procesado_at).length;
-  $('#m').innerHTML=`<div class="wel"><h2>👋 Bienvenido, Bodega ${sessionStorage.bod}</h2><p>Portal Logística Inversa · ${p?`Tienes ${p} solicitud(es) pendiente(s)`:'Estás al día 🎉'}</p></div>`+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
+  const k=s=>s.estado!='abierta'?2:s.procesado_at?1:0;S=r.data.sort((a,b)=>k(a)-k(b));const p=S.filter(s=>k(s)==0).length;
+  $('#m').innerHTML=`<div class="wel"><h2>👋 Bienvenido, Bodega ${sessionStorage.bod}</h2><p>Portal Logística Inversa · ${p?`Tienes ${p} solicitud(es) pendiente(s)`:'Estás al día 🎉'}${S.some(s=>s.estado!='abierta')?' · Las solicitudes cerradas se ocultan solas en 2 días':''}</p></div>`+(S.length?S.map(card).join(''):'<p class="mut">No hay solicitudes activas por ahora.</p>');
 }
 const fx=d=>d?new Date(d+'T00:00').toLocaleDateString('es-BO',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}).toUpperCase():'';
 const fc=d=>new Date(d+'T00:00').toLocaleDateString('es-BO',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}).toUpperCase();
 function recojo(s){const d=s.recojo_desde,h=s.recojo_hasta;if(!d)return'';return `<tr class="g"><th>📅 FECHA DE RECOJO:</th><td>${h&&h!=d?`DEL ${fc(d)} AL ${fc(h)}`:fx(d)}</td></tr>`}
+const hoyL=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const fd=d=>d?d.split('-').reverse().join('/'):'';
 function lotes(s){const a=Array.isArray(s.cond_lotes)?s.cond_lotes:[];return a.length?a:(s.cond_activa&&(s.cond_lote||s.cond_fecha)?[{lote:s.cond_lote,fecha:s.cond_fecha}]:[])}
 function lvRow(s){if(!(s.codigo||s.producto||s.cond_activa))return'';const L=lotes(s),t=L.length?L.map(x=>[x.lote&&'LOTE '+x.lote,x.fecha&&'VENCE '+fd(x.fecha)].filter(Boolean).join(' · ')):['TODO EL STOCK'];return `<tr><th>LOTE / VENCIMIENTO:</th><td class="big">${t.map(e).join('<br>')}</td></tr>`}
@@ -82,11 +83,11 @@ function datos(s){
   ${lvRow(s)}${r('PROVEEDOR:',s.proveedor)}${r('MOTIVO:',s.motivo)}${r('BODEGAS DESTINO:',s.destino)}${recojo(s)}${r('PLAZO PARA PROCESAR:',fx(s.plazo))}${r('RÓTULO:',s.rotulo)}</table>`;
 }
 function card(s){
-  const info=s.tipo=='informativa',ok=!!(s.procesado_at||(info&&s.visto_at));
+  const info=s.tipo=='informativa',ok=!!(s.procesado_at||(info&&s.visto_at)),cl=s.estado=='cerrada';
   const acc=info?(ok?`<span class="mut">Visto el ${fh(s.procesado_at||s.visto_at)}</span>`:`<button onclick="mark('${s.id}','visto')">👁 Marcar como visto</button>`)
     :(ok?`<span class="mut">${s.sin_existencias?'Sin existencias':'Enviado'} el ${fh(s.procesado_at)}</span>`:`<button onclick="fill('${s.id}')">Llenar información</button>`);
-  return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Visto':'Enviado'):s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
-  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}<div class="row">${acc}</div></div>`;
+  return `<div class="card" ${cl&&!ok?'style="opacity:.7"':''}><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Visto':'Enviado'):cl?'🔒 Cerrada':s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
+  ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}<div class="row">${cl&&!ok?'<span class="mut">🔒 Cerrada: venció el plazo sin completarse</span>':acc}</div></div>`;
 }
 async function mark(id,x){if(!confirm('¿Confirmas que ya viste esta información? Quedará registrado para el administrador.'))return;
   const r=await rpc('bod_marcar',{p_sol:id,p_estado:x});r.error?alert(r.error.message):portal()}
@@ -128,16 +129,17 @@ async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#
 let DS=[],DB=[],DR=[];
 async function dash(){
   $('#m').innerHTML='<p class="mut">Cargando…</p>';
+  await sb.rpc('cerrar_vencidas');
   const[a,b]=await Promise.all([sb.from('solicitudes').select('id,titulo,tipo,estado,plazo').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
   if(a.error||b.error)return $('#m').innerHTML='<div class="card">'+e((a.error||b.error).message)+'</div>';
   DS=a.data;DB=b.data;
-  $('#m').innerHTML=`<div class="row"><select id="fs" onchange="pintar()" style="max-width:340px"><option value="">Todas las solicitudes abiertas</option>${DS.map(s=>`<option value="${s.id}">${e(s.titulo)}${s.estado=='cerrada'?' (cerrada)':''}</option>`).join('')}</select>
+  $('#m').innerHTML=`<div class="row"><select id="fs" onchange="pintar()" style="max-width:340px"><option value="">Todas las solicitudes abiertas</option><option value="*">Todas, incluidas las cerradas</option>${DS.map(s=>`<option value="${s.id}">${e(s.titulo)}${s.estado=='cerrada'?' (cerrada)':''}</option>`).join('')}</select>
   <select id="ft" onchange="pintar()"><option value="">Ambos tipos</option><option value="informativa">Solo información</option><option value="llenado">Con llenado</option></select><button class="ghost" onclick="dl('avance_bodegas.csv',[['bodega','asignadas','vistas','procesadas','pendientes','vencidas','avance_%'],...DR.map(o=>[o.b,o.n,o.v+o.p,o.p,o.n-o.p-o.v,o.venc,o.pc])])">Exportar CSV</button></div><div id="db"></div>`;
   pintar();
 }
 function pintar(){
-  const fs=$('#fs').value,ft=$('#ft').value,hoy=new Date().toISOString().slice(0,10);
-  const L=DS.filter(s=>(fs?s.id==fs:s.estado=='abierta')&&(!ft||s.tipo==ft)),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={};
+  const fs=$('#fs').value,ft=$('#ft').value,hoy=hoyL();
+  const L=DS.filter(s=>(fs=='*'||(fs?s.id==fs:s.estado=='abierta'))&&(!ft||s.tipo==ft)),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={};
   DB.filter(x=>sm[x.solicitud_id]).forEach(x=>{const o=by[x.bodega]??={b:x.bodega,n:0,v:0,p:0,venc:0,l:[]},pz=sm[x.solicitud_id].plazo;
     o.n++;x.procesado_at?o.p++:x.visto_at&&o.v++;if(!x.procesado_at&&pz&&pz<hoy)o.venc++;o.l.push(x)});
   DR=Object.values(by).map(o=>({...o,pc:Math.round(o.p/o.n*100)})).sort((a,b)=>a.pc-b.pc||b.n-a.n);
@@ -156,17 +158,18 @@ let OS=[],OB=[],OD=[],OIDS=[],OPEN=[];
 async function oper(){
   OPEN=[...document.querySelectorAll('tr.cl')].filter(t=>!t.nextElementSibling.hidden).map(t=>t.dataset.b);const prev=$('#os')?.value||'';
   $('#m').innerHTML='<p class="mut">Cargando…</p>';
+  await sb.rpc('cerrar_vencidas');
   const[a,b]=await Promise.all([sb.from('solicitudes').select('id,titulo,estado').eq('tipo','llenado').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
   if(a.error||b.error)return $('#m').innerHTML='<div class="card">'+e((a.error||b.error).message)+'<br>¿Ya ejecutaste migracion_3_recojo_recibido.sql?</div>';
   OS=a.data;OB=b.data;
   $('#m').innerHTML=`<h2>Dashboard del operador · recepción</h2><p class="mut">Marca como recibido lo que cada bodega ya envió. Mide tu avance sobre las solicitudes con llenado.</p>
-  <div class="row"><select id="os" onchange="opintar()" style="max-width:340px"><option value="">Todas las solicitudes abiertas</option>${OS.map(s=>`<option value="${s.id}">${e(s.titulo)}${s.estado=='cerrada'?' (cerrada)':''}</option>`).join('')}</select>
+  <div class="row"><select id="os" onchange="opintar()" style="max-width:340px"><option value="">Todas las solicitudes abiertas</option><option value="*">Todas, incluidas las cerradas</option>${OS.map(s=>`<option value="${s.id}">${e(s.titulo)}${s.estado=='cerrada'?' (cerrada)':''}</option>`).join('')}</select>
   <button class="ghost" onclick="tgAll(1)">▾ Desplegar todo</button><button class="ghost" onclick="tgAll(0)">▸ Contraer todo</button>
   <button class="ghost" onclick="dl('recepcion_operador.csv',[['bodega','asignadas','enviadas','recibidas','por_recibir'],...OD.map(o=>[o.b,o.n,o.env,o.rec,o.env-o.rec])])">Exportar CSV</button></div><div id="od"></div>`;
   $('#os').value=prev;opintar();
 }
 function opintar(){
-  const fs=$('#os').value,L=OS.filter(s=>fs?s.id==fs:s.estado=='abierta'),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={},pc=(a,b)=>b?Math.round(a/b*100):0;OIDS=L.map(s=>s.id);
+  const fs=$('#os').value,L=OS.filter(s=>fs=='*'||(fs?s.id==fs:s.estado=='abierta')),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={},pc=(a,b)=>b?Math.round(a/b*100):0;OIDS=L.map(s=>s.id);
   OB.filter(x=>sm[x.solicitud_id]).forEach(x=>{const o=by[x.bodega]??={b:x.bodega,n:0,env:0,rec:0,l:[]};o.n++;if(x.procesado_at)o.env++;if(x.procesado_at&&x.recibido_at)o.rec++;o.l.push(x)});
   OD=Object.values(by).sort((a,b)=>(b.env-b.rec)-(a.env-a.rec)||a.b.localeCompare(b.b));
   const T=OD.reduce((a,o)=>({n:a.n+o.n,env:a.env+o.env,rec:a.rec+o.rec}),{n:0,env:0,rec:0});
@@ -222,16 +225,20 @@ async function crear(){
   r.error?alert(r.error.message):lista();
 }
 async function lista(){
+  await sb.rpc('cerrar_vencidas');
   const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
   $('#m').innerHTML=a.data.map(s=>{const info=s.tipo=='informativa',x=b.data.filter(y=>y.solicitud_id==s.id),p=x.filter(y=>y.procesado_at).length,v=x.filter(y=>y.visto_at&&!y.procesado_at).length,n=x.length||1;
   return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h3>${datos(s)}
   <div class="sb"><i class="p" style="width:${p/n*100}%"></i><i class="v" style="width:${v/n*100}%"></i></div>
   <p class="mut">${p} ${info?'vistas':'enviadas'}${info?'':` · ${v} abiertas sin enviar`} · ${x.length-p-v} pendientes${info?'':` · ${x.filter(y=>y.recibido_at).length} recibidas`} · de ${x.length} bodegas${x.length?'':' — asigna bodegas para medir el avance'}</p>
-  <div class="row"><button onclick="ver('${s.id}')">Ver detalle</button><button class="ghost" onclick="asignar('${s.id}')">Asignar bodegas</button><button class="ghost" onclick="wa('${s.id}')">📲 Avisar por WhatsApp</button>
-  <button class="ghost" onclick="est('${s.id}','${s.estado=='abierta'?'cerrada':'abierta'}')">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
+  <div class="row"><button onclick="ver('${s.id}')">Seguimiento</button><button class="ghost" onclick="asignar('${s.id}')">Asignar bodegas</button><button class="ghost" onclick="wa('${s.id}')">📲 Avisar por WhatsApp</button>
+  <button class="ghost" onclick="${s.estado=='abierta'?`est('${s.id}')`:`reabrirSol('${s.id}')`}">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
   <button class="ghost" onclick="del('${s.id}')">Eliminar</button></div></div>`}).join('')||'<p class="mut">Aún no hay solicitudes. Crea la primera.</p>';
 }
-async function est(id,v){await sb.from('solicitudes').update({estado:v}).eq('id',id);lista()}
+async function est(id){if(!confirm('¿Cerrar esta solicitud? Las bodegas ya no podrán marcarla ni enviar datos.'))return;await sb.from('solicitudes').update({estado:'cerrada',cerrada_at:new Date().toISOString()}).eq('id',id);lista()}
+async function reabrirSol(id){const{data:x}=await sb.from('solicitudes').select('titulo').eq('id',id).single();
+  $('#m').innerHTML=`<div class="card"><h2>Reabrir solicitud</h2><p><b>${e(x.titulo)}</b></p><p class="mut">Las solicitudes se cierran solas al vencer el plazo para procesar. Define un nuevo plazo (si lo dejas vacío, no se cerrará sola).</p><label class="mut">Nuevo plazo para procesar</label><input id="np" type="date"><div class="row"><button onclick="reabrirOk('${id}')">Reabrir</button><button class="ghost" onclick="lista()">Cancelar</button></div></div>`}
+async function reabrirOk(id){const np=$('#np').value||null;if(np&&np<hoyL())return alert('El nuevo plazo no puede estar en el pasado');const r=await sb.from('solicitudes').update({estado:'abierta',cerrada_at:null,plazo:np}).eq('id',id);r.error?alert(r.error.message):lista()}
 async function del(id){if(confirm('¿Eliminar la solicitud y todos sus datos?')){await sb.from('solicitudes').delete().eq('id',id);lista()}}
 async function asignar(id){
   const{data}=await sb.from('solicitud_bodegas').select('bodega').eq('solicitud_id',id),ya=new Set(data.map(x=>x.bodega));
@@ -244,15 +251,29 @@ async function asig2(id){const bs=[...document.querySelectorAll('.chips input:ch
 async function reab(id,b,info){if(!confirm(info?`¿Quitar el "visto" de ${b}?`:`¿Reabrir ${b}? Se borrarán sus filas enviadas.`))return;
   if(!info)await sb.from('registros').delete().eq('solicitud_id',id).eq('bodega',b);
   await sb.from('solicitud_bodegas').update({estado:'pendiente',enviado_at:null,procesado_at:null,recibido_at:null,sin_existencias:false,...(info?{visto_at:null}:{})}).eq('solicitud_id',id).eq('bodega',b);ver(id)}
-let R=[];
-async function ver(id){
-  const[s,r,b]=await Promise.all([sb.from('solicitudes').select('tipo,titulo').eq('id',id).single(),sb.from('registros').select('*').eq('solicitud_id',id).order('bodega').limit(10000),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega')]);
-  R=r.data;const info=s.data.tipo=='informativa',p=b.data.filter(x=>x.procesado_at).length,v=b.data.filter(x=>x.visto_at&&!x.procesado_at).length;
-  $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button>${info?'':'<button onclick="dl(\'consolidado.csv\',[COL,...R.map(x=>COL.map(c=>x[c]))])">Exportar a Excel (CSV)</button>'}</div>
-  <h2>${e(s.data.titulo)}</h2><p class="mut">${p} ${info?'vistas':'enviadas'}${info?'':` · ${v} abiertas sin enviar`} · ${b.data.length-p-v} pendientes</p>
-  <h3>Bodegas (verde = ${info?'visto':'enviado'}${info?'':' · amarillo = abierta sin enviar'})</h3><div class="chips">${b.data.map(x=>`<span class="chip ${x.procesado_at?'ok':x.visto_at?'vis':''}" title="${x.procesado_at?fh(x.procesado_at):x.visto_at?'Visto '+fh(x.visto_at):'Pendiente'}">${x.bodega}${x.sin_existencias?' · sin stock':''}${x.recibido_at?' 📬':''}${x.procesado_at?` <a onclick="reab('${id}','${x.bodega}',${info})" title="Reabrir">↺</a>`:''}</span>`).join('')}</div>
-  ${info?'':`<h3>Consolidado · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead>
-  <tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}`;
+let R=[],SG={};
+async function ver(id,f='all'){
+  await sb.rpc('cerrar_vencidas');
+  const[x,r,b]=await Promise.all([sb.from('solicitudes').select('*').eq('id',id).single(),sb.from('registros').select('*').eq('solicitud_id',id).order('bodega').limit(10000),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega')]);
+  R=r.data;SG={id,s:x.data,b:b.data};sg(f);
+}
+async function rcb(id,b,v){await sb.from('solicitud_bodegas').update({recibido_at:v?new Date().toISOString():null}).eq('solicitud_id',id).eq('bodega',b).not('procesado_at','is',null);ver(id,SG.f)}
+function sg(f){
+  SG.f=f;const{id,s,b}=SG,info=s.tipo=='informativa',done=x=>!!x.procesado_at;
+  const stt=x=>x.recibido_at?'📬 Recibido':done(x)?(info?'✅ Visto':x.sin_existencias?'✅ Enviado (sin existencias)':'✅ Enviado'):x.visto_at?'👁 Abierta, sin enviar':'⏳ Pendiente';
+  const p=b.filter(done).length,falt=b.length-p,rc=b.filter(x=>x.recibido_at).length,t=x=>x?fh(x):'–';
+  const L=b.filter(x=>f=='falt'?!done(x):f=='ok'?done(x):true).sort((x,y)=>done(x)-done(y)||x.bodega.localeCompare(y.bodega));
+  const acc=x=>done(x)?(info?'':(x.recibido_at?`<a style="cursor:pointer" onclick="rcb('${id}','${x.bodega}',0)">↺ quitar recibido</a>`:`<button style="padding:4px 10px" onclick="rcb('${id}','${x.bodega}',1)">📬 Recibido</button>`)+' ')+`<a style="cursor:pointer" onclick="reab('${id}','${x.bodega}',${info})">↺ reabrir</a>`:'';
+  $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button>
+  <button class="ghost" onclick="dl('seguimiento.csv',[['bodega','estado','abierto','completado','recibido'],...SG.b.map(x=>[x.bodega,stt(x),x.visto_at||'',x.procesado_at||'',x.recibido_at||''])])">Exportar seguimiento</button>
+  ${info?'':`<button class="ghost" onclick="dl('consolidado.csv',[COL,...R.map(x=>COL.map(c=>x[c]))])">Exportar datos (CSV)</button>`}
+  ${falt&&s.estado=='abierta'?`<button onclick="wa('${id}',1)">📲 Avisar a los que faltan (${falt})</button>`:''}</div>
+  <h2>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h2>
+  <div class="kpis"><div class="kpi"><b>${b.length?Math.round(p/b.length*100):0}%</b><span>${p} de ${b.length} ${info?'la vieron':'enviaron'}</span></div><div class="kpi"><b style="color:${falt?'#c0392b':'inherit'}">${falt}</b><span>Faltan</span></div>${info?'':`<div class="kpi"><b>${rc}</b><span>Recibidas por ti</span></div>`}<div class="kpi"><b style="font-size:22px">${s.plazo?fd(s.plazo):'–'}</b><span>Plazo para procesar</span></div></div>
+  <div class="row"><select onchange="sg(this.value)"><option value="all" ${f=='all'?'selected':''}>Todas (${b.length})</option><option value="falt" ${f=='falt'?'selected':''}>Faltan (${falt})</option><option value="ok" ${f=='ok'?'selected':''}>${info?'Ya vieron':'Ya enviaron'} (${p})</option></select></div>
+  <div class="tw"><table style="min-width:720px"><thead><tr><th>BODEGA</th><th>ESTADO</th>${info?'<th>FECHA Y HORA</th>':'<th>ABIERTO</th><th>ENVIADO</th><th>RECIBIDO</th>'}<th></th></tr></thead>
+  <tbody>${L.map(x=>`<tr><td style="padding:8px"><b>${x.bodega}</b></td><td>${stt(x)}</td>${info?`<td>${t(x.procesado_at)}</td>`:`<td>${t(x.visto_at)}</td><td>${t(x.procesado_at)}</td><td>${t(x.recibido_at)}</td>`}<td style="padding:6px">${acc(x)}</td></tr>`).join('')||'<tr><td colspan="6" style="padding:14px" class="mut">Sin bodegas en este filtro.</td></tr>'}</tbody></table></div>
+  ${info?'':`<h3>Datos enviados · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead><tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}`;
 }
 
 /* ---- Contactos y aviso por WhatsApp (manual, gratis) ---- */
@@ -268,7 +289,7 @@ async function contactos(){
 }
 async function addTel(b){const t=tel($('#n_'+b).value);if(t.length<11)return alert('Número inválido');const r=await sb.from('bodega_contactos').insert({bodega:b,telefono:t});r.error?alert(r.error.code=='23505'?'Ese número ya está en esa bodega':r.error.message):contactos()}
 async function delTel(id){if(confirm('¿Quitar este número?')){await sb.from('bodega_contactos').delete().eq('id',id);contactos()}}
-async function wa(id){
+async function wa(id,pend){
   const[s,b,c]=await Promise.all([sb.from('solicitudes').select('*').eq('id',id).single(),sb.from('solicitud_bodegas').select('*').eq('solicitud_id',id).order('bodega'),sb.from('bodega_contactos').select('*')]);
   if(c.error)return alert(c.error.message+'\n¿Ya ejecutaste migracion_5_whatsapp_lotes.sql?');
   WS=new Set();WM={b:b.data,c:c.data};const x=s.data,info=x.tipo=='informativa',link=location.origin+location.pathname,
@@ -279,7 +300,7 @@ async function wa(id){
   <label class="sw"><input type="checkbox" id="wp" onchange="wlist()"> Solo bodegas pendientes (recordatorio)</label>
   <p class="mut">Sale desde el WhatsApp que tengas abierto en WhatsApp Web / Escritorio (tu número madre). Cada botón abre el chat con el mensaje listo: solo pulsas enviar y vuelves aquí.</p>
   <div class="row"><button onclick="wnext()">▶ Enviar al siguiente</button><span id="wc" class="mut"></span></div></div><div id="wl"></div>`;
-  wlist();
+  if(pend)$('#wp').checked=true;wlist();
 }
 function wlist(){
   const pend=$('#wp').checked;
