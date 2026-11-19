@@ -107,7 +107,7 @@ function hero(form,sub){return `<div class="hz"><div class="hz-in"><div><div cla
 <div class="hz-login">${form}</div></div>
 <div class="sc"><div class="sc-in"><div class="orb o1"></div><div class="orb o2"></div><div class="tile"><div class="face"><img src="icon.jpg" alt=""></div><div class="face b"><img src="icon.jpg" alt=""></div></div>
 </div></div></div>
-<div class="hz-foot">Nexocorp · Logística Inversa · Uso interno</div></div>`}
+<div class="hz-foot">Nexocorp · Logística Inversa · Uso interno · Versión ${VER}</div></div>`}
 function tilt(){const sc=document.querySelector('.sc-in'),h=document.querySelector('.hz');if(!sc||!h)return;
   h.onmousemove=ev=>{sc.style.transform=`rotateY(${(ev.clientX/innerWidth-.5)*18}deg) rotateX(${-(ev.clientY/innerHeight-.5)*14}deg)`};h.onmouseleave=()=>{sc.style.transform=''}}
 
@@ -183,6 +183,7 @@ async function send(id,empty){
 }
 
 /* ================= PANEL ADMIN (#admin) ================= */
+const VER='19-nov · menú lateral + dashboard por solicitud';
 const act=k=>document.querySelectorAll('.nv').forEach(b=>b.classList.toggle('on',b.dataset.k==k));
 function go(k){({nueva,lista,dash,oper,contactos,accesos})[k]()}
 async function admin(){
@@ -192,7 +193,7 @@ async function admin(){
   app.innerHTML=`<div class="ad"><aside class="sd"><div class="sd-logo"><img src="icon.jpg" alt=""><b>NEXOCORP</b></div>
   <div class="sd-user"><div class="av">${e(em.slice(0,2).toUpperCase())}</div><span>${e(em)}</span><small>Administrador / Operador</small></div>
   <nav>${[['nueva','✚','Nueva solicitud'],['lista','📋','Solicitudes'],['dash','📊','Dashboard'],['oper','📦','Operador'],['contactos','📱','Contactos'],['accesos','🔑','Accesos bodega']].map(([k,i,t])=>`<button class="nv" data-k="${k}" onclick="go('${k}')"><span>${i}</span>${t}</button>`).join('')}</nav>
-  <button class="nv out" onclick="sb.auth.signOut().then(admin)"><span>⎋</span>Salir</button></aside><section class="ad-main"><div id="m"></div></section></div>`;
+  <button class="nv out" onclick="sb.auth.signOut().then(admin)"><span>⎋</span>Salir</button><small style="text-align:center;opacity:.65;font-size:11px">Versión ${VER}</small></aside><section class="ad-main"><div id="m"></div></section></div>`;
   dash();
 }
 async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});error?alert(error.message):admin()}
