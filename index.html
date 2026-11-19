@@ -80,7 +80,7 @@ const $=s=>document.querySelector(s),app=$('#app');
 const e=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const head=(sub,r='')=>`<header><img src="icon.jpg" alt="NEXOCORP"><h1>PANEL INFORMATIVO LOGÍSTICA<small>${sub}</small></h1><div class="r">${r}</div></header>`;
 const fh=d=>new Date(d).toLocaleString('es-BO',{dateStyle:'short',timeStyle:'short'});
-const st=(x,i)=>x.procesado_at?(i?'👁 Visto':'✅ Enviado'):x.visto_at?'👁 Abierto, sin enviar':'⏳ Pendiente';
+const st=(x,i)=>x.procesado_at?(i?'✅ Procesado':'✅ Enviado'):x.visto_at?'👁 Abierto, sin enviar':'⏳ Pendiente';
 const mk=v=>document.querySelectorAll('.chips input:not(:disabled)').forEach(i=>i.checked=!!v);
 function dl(n,rows){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(q).join(';')).join('\n')],{type:'text/csv'}));a.download=n;a.click()}
 function init(){location.hash=='#admin'?admin():portal()}
@@ -115,20 +115,25 @@ function recojo(s){const d=s.recojo_desde,h=s.recojo_hasta;if(!d)return'';return
 const hoyL=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
 const fd=d=>d?d.split('-').reverse().join('/'):'';
 function lotes(s){const a=Array.isArray(s.cond_lotes)?s.cond_lotes:[];return a.length?a:(s.cond_activa&&(s.cond_lote||s.cond_fecha)?[{lote:s.cond_lote,fecha:s.cond_fecha}]:[])}
-function lvRow(s){if(!(s.codigo||s.producto||s.cond_activa))return'';const L=lotes(s),t=L.length?L.map(x=>[x.lote&&'LOTE '+x.lote,x.fecha&&'VENCE '+fd(x.fecha)].filter(Boolean).join(' · ')):['TODO EL STOCK'];return `<tr><th>LOTE / VENCIMIENTO:</th><td class="big">${t.map(e).join('<br>')}</td></tr>`}
+function lvRow(s){if(!(prods(s).length||s.cond_activa))return'';const L=lotes(s),t=L.length?L.map(x=>[x.lote&&'LOTE '+x.lote,x.fecha&&'VENCE '+fd(x.fecha)].filter(Boolean).join(' · ')):['TODO EL STOCK'];return `<tr><th>LOTE / VENCIMIENTO:</th><td class="big">${t.map(e).join('<br>')}</td></tr>`}
+function prods(s){const a=Array.isArray(s.productos)?s.productos:[];return a.length?a:((s.codigo||s.producto)?[{codigo:s.codigo,producto:s.producto}]:[])}
+function prRows(s){const P=prods(s);return P.length?`<tr class="y"><th>COD SKU / DESCRIPCIÓN:</th><td>${P.map(x=>e(x.codigo||'')+' &nbsp; '+e(x.producto||'')).join('<br>')}</td></tr>`:''}
 function datos(s){
   const r=(k,v,c='')=>v?`<tr><th>${k}</th><td class="${c}">${e(v)}</td></tr>`:'';
   
-  return `<table class="dr">${s.codigo||s.producto?`<tr class="y"><th>COD SKU:<br>DESCRIPCIÓN:</th><td>${e(s.codigo)} &nbsp; ${e(s.producto)}</td></tr>`:''}
+  return `<table class="dr">${prRows(s)}
   ${lvRow(s)}${r('PROVEEDOR:',s.proveedor)}${r('MOTIVO:',s.motivo)}${r('BODEGAS DESTINO:',s.destino)}${recojo(s)}${r('PLAZO PARA PROCESAR:',fx(s.plazo))}${r('RÓTULO:',s.rotulo)}</table>`;
 }
 function card(s){
   const info=s.tipo=='informativa',ok=!!(s.procesado_at||(info&&s.visto_at)),cl=s.estado=='cerrada';
-  const acc=info?(ok?`<span class="mut">Visto el ${fh(s.procesado_at||s.visto_at)}</span>`:`<button onclick="mark('${s.id}','visto')">👁 Marcar como visto</button>`)
+  const acc=info?(ok?`<span class="mut">Procesado el ${fh(s.procesado_at||s.visto_at)}${s.respuesta?`<br>“${e(s.respuesta)}”`:''}</span>`:`<div style="flex:1;min-width:240px"><label class="mut">Escribe el detalle del procesamiento (quién lo procesó, observaciones…)</label><input id="rp_${s.id}" placeholder="Ej.: Procesado por Juan, 3 cajas apartadas"><button onclick="proc('${s.id}')">✅ OK, procesado</button></div>`)
     :(ok?`<span class="mut">${s.sin_existencias?'Sin existencias':'Enviado'} el ${fh(s.procesado_at)}</span>`:`<button onclick="fill('${s.id}')">Llenar información</button>`);
-  return `<div class="card ${cl&&!ok?'cl':ok?'ok':'pend'}"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Visto':'Enviado'):cl?'🔒 Cerrada':s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
+  return `<div class="card ${cl&&!ok?'cl':ok?'ok':'pend'}"><h3>${e(s.titulo)} <span class="tag">${info?'Solo información':'Requiere llenado'}</span> <span class="tag st ${ok?'ok':''}">${ok?'✅ '+(info?'Procesado':'Enviado'):cl?'🔒 Cerrada':s.visto_at?'👁 Visto':'Pendiente'}</span></h3>
   ${s.descripcion?`<p class="mut">${e(s.descripcion)}</p>`:''}${datos(s)}${s.doc_url?`<p><a href="${e(s.doc_url)}" target="_blank">📎 Ver documento adjunto</a></p>`:''}<div class="row">${cl&&!ok?'<span class="mut">🔒 Cerrada: venció el plazo sin completarse</span>':acc}</div></div>`;
 }
+async function proc(id){const t=($('#rp_'+id).value||'').trim();if(!t)return alert('Escribe el campo antes de confirmar');
+  if(!confirm('¿Confirmas que esta información fue procesada? No podrás deshacerlo.'))return;
+  const r=await rpc('bod_procesar',{p_sol:id,p_texto:t});r.error?alert(r.error.message):portal()}
 async function mark(id,x){if(!confirm('¿Confirmas que ya viste esta información? Quedará registrado para el administrador.'))return;
   const r=await rpc('bod_marcar',{p_sol:id,p_estado:x});r.error?alert(r.error.message):portal()}
 function fill(id){
@@ -138,14 +143,16 @@ function fill(id){
   <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}')">Enviar información</button><button class="ghost" onclick="send('${id}',1)">Sin existencias</button></div>`;
   addRow();
 }
+function selProd(el){const tr=el.closest('tr'),x=prods(CUR).find(y=>(y.codigo||'')==el.value);tr.querySelector('[data-c=descripcion]').value=x?.producto||''}
 function selLote(el){const tr=el.closest('tr'),m=lotes(CUR).filter(y=>y.lote==el.value),x=m.length==1?m[0]:null,f=tr.querySelector('[data-c=fecha_vencimiento]');f.value=x?.fecha||'';f.readOnly=!!x?.fecha;f.classList.toggle('lk',!!x?.fecha)}
 function addRow(){
   const s=CUR,L=lotes(s),conL=L.some(x=>x.lote),one=L.length==1,l0=L[0]||{};
   const i=(k,t='text',v='',ro=false)=>`<td><input data-c="${k}" type="${t}" value="${e(v)}" ${ro?'readonly class="lk"':''}></td>`;
   const sel=(k,o,ph,fn='')=>`<td><select data-c="${k}" ${fn}><option value="">${ph}</option>${o.map(([v,t])=>`<option value="${e(v)}">${e(t)}</option>`).join('')}</select></td>`;
+  const P=prods(s),multi=P.length>1,cod=multi?sel('codigo',P.map(x=>[x.codigo||'',(x.codigo||'')+(x.producto?' — '+x.producto:'')]),'Elige producto','onchange="selProd(this)"'):i('codigo','text',P[0]?.codigo||''),des=i('descripcion','text',multi?'':(P[0]?.producto||s.descripcion||''),multi);
   const fch=!conL&&L.length>1?sel('fecha_vencimiento',[...new Set(L.map(x=>x.fecha).filter(Boolean))].map(d=>[d,fd(d)]),'Elige fecha'):i('fecha_vencimiento','date',one?l0.fecha||'':'',one&&!!l0.fecha);
   const lot=conL&&!one?sel('lote',[...new Set(L.map(x=>x.lote).filter(Boolean))].map(v=>[v,v]),'Elige lote','onchange="selLote(this)"'):i('lote','text',one?l0.lote||'':'',one&&!!l0.lote);
-  $('#rows').insertAdjacentHTML('beforeend','<tr>'+i('codigo','text',s.codigo)+i('descripcion','text',s.producto||s.descripcion)+i('unidad')+i('cantidad','number')+fch+lot+i('proveedor')+'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
+  $('#rows').insertAdjacentHTML('beforeend','<tr>'+cod+des+i('unidad')+i('cantidad','number')+fch+lot+i('proveedor')+'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
 }
 async function send(id,empty){
   const b=sessionStorage.bod,f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input,select')].map(i=>[i.dataset.c,i.value.trim()||null]))).filter(r=>r.cantidad||r.lote||r.proveedor);
@@ -194,15 +201,28 @@ async function dash(){
   <select id="ft" onchange="pintar()"><option value="">Ambos tipos</option><option value="informativa">Solo información</option><option value="llenado">Con llenado</option></select><button class="ghost" onclick="dl('avance_bodegas.csv',[['bodega','asignadas','vistas','procesadas','pendientes','vencidas','avance_%'],...DR.map(o=>[o.b,o.n,o.v+o.p,o.p,o.n-o.p-o.v,o.venc,o.pc])])">Exportar CSV</button></div><div id="db"></div>`;
   pintar();
 }
+let DV='sol';
+const vt=()=>`<div class="row" style="margin:6px 0 12px"><button class="${DV=='sol'?'':'ghost'}" onclick="DV='sol';pintar()">📋 Por solicitud</button><button class="${DV=='bod'?'':'ghost'}" onclick="DV='bod';pintar()">🏢 Por bodega (acumulado)</button></div>`;
+function pintarSol(L){
+  const hoy=hoyL(),ch=(x,c)=>`<span class="chip ${c}" style="padding:3px 10px;cursor:default">${x.bodega}</span>`;
+  $('#db').innerHTML=vt()+`<p class="mut" style="margin:0 0 10px">Cada solicitud con su propio avance. En "Faltan", amarillo = la bodega la abrió pero no la envió.</p>`+(L.map(s=>{
+    const info=s.tipo=='informativa',b=DB.filter(x=>x.solicitud_id==s.id),ok=b.filter(x=>x.procesado_at),fa=b.filter(x=>!x.procesado_at),rc=b.filter(x=>x.recibido_at).length,pc=b.length?Math.round(ok.length/b.length*100):0,venc=s.plazo&&s.plazo<hoy&&fa.length;
+    return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${e(s.titulo)} <span class="tag">${info?'Solo información':'Con llenado'}</span> <span class="tag">${s.estado}</span></h3><div class="row"><button class="ghost" onclick="ver('${s.id}')">Seguimiento</button>${fa.length&&s.estado=='abierta'?`<button onclick="wa('${s.id}',1)">📲 Avisar a los ${fa.length} que faltan</button>`:''}</div></div>
+    <p class="mut" style="margin:6px 0">${s.plazo?'Plazo para procesar: '+fd(s.plazo):'Sin plazo'}${venc?' · <b style="color:#c0392b">vencido</b>':''} · ${rc} recibidas</p>
+    <div class="row"><div class="sb" style="flex:1"><i class="p" style="width:${pc}%"></i></div><b>${pc}%</b><span class="mut">${ok.length} de ${b.length}</span></div>
+    <div class="g2" style="margin-top:12px"><div><b style="color:var(--ok)">✅ ${info?'Ya procesaron':'Ya enviaron'} (${ok.length})</b><div class="chips">${ok.map(x=>ch(x,'ok')).join('')||'<span class="mut">Nadie aún</span>'}</div></div>
+    <div><b style="color:#c0392b">⏳ Faltan (${fa.length})</b><div class="chips">${fa.map(x=>ch(x,x.visto_at?'vis':'')).join('')||'<span class="mut">Todas completaron 🎉</span>'}</div></div></div></div>`}).join('')||'<p class="mut">No hay solicitudes con este filtro.</p>');
+}
 function pintar(){
   const fs=$('#fs').value,ft=$('#ft').value,hoy=hoyL();
   const L=DS.filter(s=>(fs=='*'||(fs?s.id==fs:s.estado=='abierta'))&&(!ft||s.tipo==ft)),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={};
+  if(DV=='sol')return pintarSol(L);
   DB.filter(x=>sm[x.solicitud_id]).forEach(x=>{const o=by[x.bodega]??={b:x.bodega,n:0,v:0,p:0,venc:0,l:[]},pz=sm[x.solicitud_id].plazo;
     o.n++;x.procesado_at?o.p++:x.visto_at&&o.v++;if(!x.procesado_at&&pz&&pz<hoy)o.venc++;o.l.push(x)});
   DR=Object.values(by).map(o=>({...o,pc:Math.round(o.p/o.n*100)})).sort((a,b)=>a.pc-b.pc||b.n-a.n);
   const T=DR.reduce((a,o)=>({n:a.n+o.n,v:a.v+o.v,p:a.p+o.p,venc:a.venc+o.venc}),{n:0,v:0,p:0,venc:0}),pct=x=>T.n?Math.round(x/T.n*100):0;
-  $('#db').innerHTML=`<div class="kpis"><div class="kpi"><b>${L.length}</b><span>Solicitudes en vista</span></div><div class="kpi"><b>${pct(T.p)}%</b><span>Completado (${T.p} de ${T.n})</span></div><div class="kpi"><b>${pct(T.p+T.v)}%</b><span>Abiertas (vistas o completadas)</span></div><div class="kpi"><b>${T.n-T.p-T.v}</b><span>Sin abrir</span></div><div class="kpi"><b style="color:${T.venc?'#c0392b':'inherit'}">${T.venc}</b><span>Vencidas sin completar</span></div></div>
-  <div class="row"><h3 style="margin:0">Avance por bodega</h3><button class="ghost" onclick="tgAll(1)">▾ Desplegar todo</button><button class="ghost" onclick="tgAll(0)">▸ Contraer todo</button></div><p class="mut" style="margin:4px 0">Verde = completada (informativa vista / llenado enviado) · amarillo = abierta sin enviar · gris = pendiente. Clic en una bodega para ver su detalle.</p>
+  $('#db').innerHTML=`${vt()}<div class="kpis"><div class="kpi"><b>${L.length}</b><span>Solicitudes en vista</span></div><div class="kpi"><b>${pct(T.p)}%</b><span>Completado (${T.p} de ${T.n})</span></div><div class="kpi"><b>${pct(T.p+T.v)}%</b><span>Abiertas (vistas o completadas)</span></div><div class="kpi"><b>${T.n-T.p-T.v}</b><span>Sin abrir</span></div><div class="kpi"><b style="color:${T.venc?'#c0392b':'inherit'}">${T.venc}</b><span>Vencidas sin completar</span></div></div>
+  <div class="row"><h3 style="margin:0">Avance por bodega</h3><button class="ghost" onclick="tgAll(1)">▾ Desplegar todo</button><button class="ghost" onclick="tgAll(0)">▸ Contraer todo</button></div><p class="mut" style="margin:4px 0">Verde = completada (informativa procesada / llenado enviado) · amarillo = abierta sin enviar · gris = pendiente. Clic en una bodega para ver su detalle.</p>
   <div class="tw"><table><thead><tr><th>BODEGA</th><th>ASIGNADAS</th><th>VISTAS</th><th>COMPLETADAS</th><th>PENDIENTES</th><th>VENCIDAS</th><th>AVANCE</th></tr></thead><tbody>${DR.map(o=>`<tr class="cl" data-b="${o.b}" onclick="tg(this)"><td style="padding:10px"><b><span class="ch">▸</span> ${o.b}</b></td><td>${o.n}</td><td>${o.v+o.p}</td><td>${o.p}</td><td>${o.n-o.p-o.v}</td><td style="color:${o.venc?'#c0392b':'inherit'}">${o.venc||'–'}</td><td><div class="sb"><i class="p" style="width:${o.p/o.n*100}%"></i><i class="v" style="width:${o.v/o.n*100}%"></i></div> ${o.pc}%</td></tr>
   <tr hidden><td colspan="7" style="padding:10px 16px;background:#f6f7fd">${o.l.map(x=>`${st(x,sm[x.solicitud_id].tipo=='informativa')}${x.recibido_at?' 📬 recibido':''} · ${e(sm[x.solicitud_id].titulo)} <span class="mut">(${sm[x.solicitud_id].tipo=='informativa'?'info':'llenado'}${sm[x.solicitud_id].plazo?' · plazo para procesar '+sm[x.solicitud_id].plazo:''})</span>`).join('<br>')}</td></tr>`).join('')||'<tr><td colspan="7" style="padding:14px" class="mut">No hay solicitudes con bodegas asignadas.</td></tr>'}</tbody></table></div>`;
 }
@@ -234,7 +254,7 @@ function opintar(){
   <div class="tw"><table><thead><tr><th>BODEGA</th><th>ASIGNADAS</th><th>COMPLETADAS</th><th>RECIBIDAS</th><th>POR RECIBIR</th><th>AVANCE (verde = recibido · amarillo = por recibir)</th><th></th></tr></thead><tbody>${OD.map(o=>{const por=o.env-o.rec;
   return `<tr class="cl" data-b="${o.b}" onclick="tg(this)"><td style="padding:10px"><b><span class="ch">▸</span> ${o.b}</b></td><td>${o.n}</td><td>${o.env}</td><td>${o.rec}</td><td style="font-weight:700;color:${por?'#8a6100':'inherit'}">${por}</td><td><div class="sb"><i class="p" style="width:${o.rec/o.n*100}%"></i><i class="v" style="width:${por/o.n*100}%"></i></div> ${pc(o.rec,o.n)}%</td><td>${por?`<button onclick="event.stopPropagation();recibir('${o.b}')">📬 Recibir todo</button>`:''}</td></tr>
   <tr hidden><td colspan="7" style="padding:10px 16px;background:#f6f7fd">${o.l.map(x=>{const inf=sm[x.solicitud_id].tipo=='informativa',t=e(sm[x.solicitud_id].titulo)+` <span class="mut">(${inf?'info':'llenado'})</span>`;
-   return x.procesado_at?(x.recibido_at?`📬 Recibido ${fh(x.recibido_at)} · ${t} <a style="cursor:pointer" onclick="recibir('${o.b}','${x.solicitud_id}',0)" title="Quitar recibido">↺</a>`:`✅ ${inf?'Visto':'Enviado'} ${fh(x.procesado_at)}${x.sin_existencias?' (sin existencias)':''} · ${t} <button style="padding:3px 10px;margin-left:6px" onclick="recibir('${o.b}','${x.solicitud_id}')">Marcar recibido</button>`):`⏳ La bodega aún no ${inf?'lo ve':'envía'} · ${t}`}).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="7" style="padding:14px" class="mut">No hay solicitudes con llenado.</td></tr>'}</tbody></table></div>`;
+   return x.procesado_at?(x.recibido_at?`📬 Recibido ${fh(x.recibido_at)} · ${t} <a style="cursor:pointer" onclick="recibir('${o.b}','${x.solicitud_id}',0)" title="Quitar recibido">↺</a>`:`✅ ${inf?'Procesado':'Enviado'} ${fh(x.procesado_at)}${x.sin_existencias?' (sin existencias)':''}${x.respuesta?` “${e(x.respuesta)}”`:''} · ${t} <button style="padding:3px 10px;margin-left:6px" onclick="recibir('${o.b}','${x.solicitud_id}')">Marcar recibido</button>`):`⏳ La bodega aún no ${inf?'lo procesa':'envía'} · ${t}`}).join('<br>')}</td></tr>`}).join('')||'<tr><td colspan="7" style="padding:14px" class="mut">No hay solicitudes con llenado.</td></tr>'}</tbody></table></div>`;
   OPEN.forEach(b=>{const t=document.querySelector(`tr.cl[data-b="${b}"]`);t&&tg(t)});
 }
 async function recibir(b,id,v=1){
@@ -247,9 +267,9 @@ async function recibir(b,id,v=1){
 /* ---- Solicitudes ---- */
 function nueva(){
   $('#m').innerHTML=`<div class="card"><h2>Nueva solicitud</h2>
-  <select id="tp"><option value="llenado">Con llenado: las bodegas cargan datos</option><option value="informativa">Solo información: las bodegas solo confirman que la vieron ("visto")</option></select>
+  <select id="tp"><option value="llenado">Con llenado: las bodegas cargan datos</option><option value="informativa">Solo información: las bodegas la procesan, escriben un detalle y confirman</option></select>
   <input id="t" placeholder="Título (ej. Repliegue EVRA PROMEDICAL)">
-  <div class="g2"><input id="c" placeholder="Código SKU (opcional)"><input id="p" placeholder="Descripción del producto (opcional)"></div>
+  <label class="mut">Productos (código SKU y descripción): agrega los que necesites</label><div id="pl"></div><button class="ghost" onclick="addProd()">+ Agregar producto</button>
   <input id="pv" placeholder="Proveedor (ej. 000184 PROMEDICAL S.A.)">
   <div class="g2"><input id="mo" placeholder="Motivo (ej. SOLICITUD)"><input id="ro" placeholder="Rótulo"></div>
   <input id="de" placeholder="Bodegas destino / a dónde enviar">
@@ -262,8 +282,9 @@ function nueva(){
   <div class="g2"><div><label class="mut">Fecha común (se aplica a los lotes que no tengan fecha propia)</label><input id="cf" type="date"></div></div></div>
   <h3>Bodegas destinatarias <button class="ghost" onclick="mk(1)">Todas</button> <button class="ghost" onclick="mk(0)">Ninguna</button></h3>
   <div class="chips">${BOD.map(b=>`<label class="chip"><input type="checkbox" value="${b}">${b}</label>`).join('')}</div>
-  <button onclick="crear()">Publicar solicitud</button></div>`;
+  <button onclick="crear()">Publicar solicitud</button></div>`;addProd();
 }
+function addProd(){$('#pl').insertAdjacentHTML('beforeend','<div class="g2 pr" style="grid-template-columns:1fr 2fr auto"><input class="pc" placeholder="Código SKU"><input class="pd" placeholder="Descripción del producto"><button class="x" onclick="this.parentElement.remove()">✕</button></div>')}
 function addLote(){$('#lt').insertAdjacentHTML('beforeend','<div class="g2 lr" style="grid-template-columns:2fr 2fr auto"><input class="ll" placeholder="Lote"><input class="lf" type="date" title="Fecha de vencimiento"><button class="x" onclick="this.parentElement.remove()">✕</button></div>')}
 async function crear(){
   const bs=[...document.querySelectorAll('.chips input:checked')].map(i=>i.value);
@@ -272,11 +293,11 @@ async function crear(){
   if($('#rh').value&&$('#rh').value<$('#rd').value)return alert('El recojo "hasta" no puede ser antes del "desde"');
   let url=null;const fl=$('#f').files[0];
   if(fl){const p=Date.now()+'_'+fl.name.replace(/[^\w.]/g,'_'),u=await sb.storage.from('docs').upload(p,fl);if(u.error)return alert(u.error.message);url=sb.storage.from('docs').getPublicUrl(p).data.publicUrl}
-  const ca=$('#ca').checked,v=id=>$(id).value.trim()||null;
+  const ca=$('#ca').checked,v=id=>$(id).value.trim()||null,pr=[...document.querySelectorAll('.pr')].map(r=>({codigo:r.querySelector('.pc').value.trim()||null,producto:r.querySelector('.pd').value.trim()||null})).filter(x=>x.codigo||x.producto);
   let lots=ca?[...document.querySelectorAll('.lr')].map(r=>({lote:r.querySelector('.ll').value.trim()||null,fecha:r.querySelector('.lf').value||$('#cf').value||null})).filter(x=>x.lote||x.fecha):[];
   if(ca&&!lots.length&&$('#cf').value)lots=[{lote:null,fecha:$('#cf').value}];
   if(ca&&!lots.length)return alert('Agrega al menos un lote o una fecha, o desmarca la condición');
-  const{data,error}=await sb.from('solicitudes').insert({tipo:$('#tp').value,titulo:v('#t'),producto:v('#p'),codigo:v('#c'),proveedor:v('#pv'),motivo:v('#mo'),rotulo:v('#ro'),destino:v('#de'),plazo:v('#pz'),recojo_desde:v('#rd'),recojo_hasta:v('#rh'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lotes:lots}).select().single();
+  const{data,error}=await sb.from('solicitudes').insert({tipo:$('#tp').value,titulo:v('#t'),productos:pr,producto:pr[0]?.producto||null,codigo:pr[0]?.codigo||null,proveedor:v('#pv'),motivo:v('#mo'),rotulo:v('#ro'),destino:v('#de'),plazo:v('#pz'),recojo_desde:v('#rd'),recojo_hasta:v('#rh'),descripcion:v('#d'),doc_url:url,cond_activa:ca,cond_lotes:lots}).select().single();
   if(error)return alert(error.message);
   const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:data.id,bodega:b})));
   r.error?alert(r.error.message):lista();
@@ -287,7 +308,7 @@ async function lista(){
   $('#m').innerHTML=a.data.map(s=>{const info=s.tipo=='informativa',x=b.data.filter(y=>y.solicitud_id==s.id),p=x.filter(y=>y.procesado_at).length,v=x.filter(y=>y.visto_at&&!y.procesado_at).length,n=x.length||1;
   return `<div class="card"><h3>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h3>${datos(s)}
   <div class="sb"><i class="p" style="width:${p/n*100}%"></i><i class="v" style="width:${v/n*100}%"></i></div>
-  <p class="mut">${p} ${info?'vistas':'enviadas'}${info?'':` · ${v} abiertas sin enviar`} · ${x.length-p-v} pendientes · ${x.filter(y=>y.recibido_at).length} recibidas · de ${x.length} bodegas${x.length?'':' — asigna bodegas para medir el avance'}</p>
+  <p class="mut">${p} ${info?'procesadas':'enviadas'}${info?'':` · ${v} abiertas sin enviar`} · ${x.length-p-v} pendientes · ${x.filter(y=>y.recibido_at).length} recibidas · de ${x.length} bodegas${x.length?'':' — asigna bodegas para medir el avance'}</p>
   <div class="row"><button onclick="ver('${s.id}')">Seguimiento</button><button class="ghost" onclick="asignar('${s.id}')">Asignar bodegas</button><button class="ghost" onclick="wa('${s.id}')">📲 Avisar por WhatsApp</button>
   <button class="ghost" onclick="${s.estado=='abierta'?`est('${s.id}')`:`reabrirSol('${s.id}')`}">${s.estado=='abierta'?'Cerrar':'Reabrir'}</button>
   <button class="ghost" onclick="del('${s.id}')">Eliminar</button></div></div>`}).join('')||'<p class="mut">Aún no hay solicitudes. Crea la primera.</p>';
@@ -305,7 +326,7 @@ async function asignar(id){
 }
 async function asig2(id){const bs=[...document.querySelectorAll('.chips input:checked:not(:disabled)')].map(i=>i.value);if(!bs.length)return alert('Elige al menos una bodega');
   const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:id,bodega:b})));r.error?alert(r.error.message):lista()}
-async function reab(id,b,info){if(!confirm(info?`¿Quitar el "visto" de ${b}?`:`¿Reabrir ${b}? Se borrarán sus filas enviadas.`))return;
+async function reab(id,b,info){if(!confirm(info?`¿Quitar el "procesado" de ${b}?`:`¿Reabrir ${b}? Se borrarán sus filas enviadas.`))return;
   if(await prot('admin_reabrir_bodega',{p_sol:id,p_bod:b,p_info:!!info}))ver(id,SG.f)}
 let R=[],SG={};
 async function ver(id,f='all'){
@@ -316,19 +337,19 @@ async function ver(id,f='all'){
 async function rcb(id,b,v){await sb.from('solicitud_bodegas').update({recibido_at:v?new Date().toISOString():null}).eq('solicitud_id',id).eq('bodega',b).not('procesado_at','is',null);ver(id,SG.f)}
 function sg(f){
   SG.f=f;const{id,s,b}=SG,info=s.tipo=='informativa',done=x=>!!x.procesado_at;
-  const stt=x=>x.recibido_at?'📬 Recibido':done(x)?(info?'✅ Visto':x.sin_existencias?'✅ Enviado (sin existencias)':'✅ Enviado'):x.visto_at?'👁 Abierta, sin enviar':'⏳ Pendiente';
+  const stt=x=>x.recibido_at?'📬 Recibido':done(x)?(info?'✅ Procesado':x.sin_existencias?'✅ Enviado (sin existencias)':'✅ Enviado'):x.visto_at?'👁 Abierta, sin enviar':'⏳ Pendiente';
   const p=b.filter(done).length,falt=b.length-p,rc=b.filter(x=>x.recibido_at).length,t=x=>x?fh(x):'–';
   const L=b.filter(x=>f=='falt'?!done(x):f=='ok'?done(x):true).sort((x,y)=>done(x)-done(y)||x.bodega.localeCompare(y.bodega));
   const acc=x=>done(x)?((x.recibido_at?`<a style="cursor:pointer" onclick="rcb('${id}','${x.bodega}',0)">↺ quitar recibido</a>`:`<button style="padding:4px 10px" onclick="rcb('${id}','${x.bodega}',1)">📬 Recibido</button>`)+' ')+`<a style="cursor:pointer" onclick="reab('${id}','${x.bodega}',${info})">↺ reabrir</a>`:'';
   $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button>
-  <button class="ghost" onclick="dl('seguimiento.csv',[['bodega','estado','abierto','completado','recibido'],...SG.b.map(x=>[x.bodega,stt(x),x.visto_at||'',x.procesado_at||'',x.recibido_at||''])])">Exportar seguimiento</button>
+  <button class="ghost" onclick="dl('seguimiento.csv',[['bodega','estado','abierto','completado','respuesta','recibido'],...SG.b.map(x=>[x.bodega,stt(x),x.visto_at||'',x.procesado_at||'',x.respuesta||'',x.recibido_at||''])])">Exportar seguimiento</button>
   ${info?'':`<button class="ghost" onclick="dl('consolidado.csv',[COL,...R.map(x=>COL.map(c=>x[c]))])">Exportar datos (CSV)</button>`}
   ${falt&&s.estado=='abierta'?`<button onclick="wa('${id}',1)">📲 Avisar a los que faltan (${falt})</button>`:''}</div>
   <h2>${e(s.titulo)} <span class="tag">${s.estado}</span> <span class="tag">${info?'Solo información':'Con llenado'}</span></h2>
-  <div class="kpis"><div class="kpi"><b>${b.length?Math.round(p/b.length*100):0}%</b><span>${p} de ${b.length} ${info?'la vieron':'enviaron'}</span></div><div class="kpi"><b style="color:${falt?'#c0392b':'inherit'}">${falt}</b><span>Faltan</span></div><div class="kpi"><b>${rc}</b><span>Recibidas por ti</span></div><div class="kpi"><b style="font-size:22px">${s.plazo?fd(s.plazo):'–'}</b><span>Plazo para procesar</span></div></div>
-  <div class="row"><select onchange="sg(this.value)"><option value="all" ${f=='all'?'selected':''}>Todas (${b.length})</option><option value="falt" ${f=='falt'?'selected':''}>Faltan (${falt})</option><option value="ok" ${f=='ok'?'selected':''}>${info?'Ya vieron':'Ya enviaron'} (${p})</option></select></div>
-  <div class="tw"><table style="min-width:720px"><thead><tr><th>BODEGA</th><th>ESTADO</th>${info?'<th>FECHA Y HORA</th><th>RECIBIDO</th>':'<th>ABIERTO</th><th>ENVIADO</th><th>RECIBIDO</th>'}<th></th></tr></thead>
-  <tbody>${L.map(x=>`<tr><td style="padding:8px"><b>${x.bodega}</b></td><td>${stt(x)}</td>${info?`<td>${t(x.procesado_at)}</td><td>${t(x.recibido_at)}</td>`:`<td>${t(x.visto_at)}</td><td>${t(x.procesado_at)}</td><td>${t(x.recibido_at)}</td>`}<td style="padding:6px">${acc(x)}</td></tr>`).join('')||'<tr><td colspan="6" style="padding:14px" class="mut">Sin bodegas en este filtro.</td></tr>'}</tbody></table></div>
+  <div class="kpis"><div class="kpi"><b>${b.length?Math.round(p/b.length*100):0}%</b><span>${p} de ${b.length} ${info?'procesaron':'enviaron'}</span></div><div class="kpi"><b style="color:${falt?'#c0392b':'inherit'}">${falt}</b><span>Faltan</span></div><div class="kpi"><b>${rc}</b><span>Recibidas por ti</span></div><div class="kpi"><b style="font-size:22px">${s.plazo?fd(s.plazo):'–'}</b><span>Plazo para procesar</span></div></div>
+  <div class="row"><select onchange="sg(this.value)"><option value="all" ${f=='all'?'selected':''}>Todas (${b.length})</option><option value="falt" ${f=='falt'?'selected':''}>Faltan (${falt})</option><option value="ok" ${f=='ok'?'selected':''}>${info?'Ya procesaron':'Ya enviaron'} (${p})</option></select></div>
+  <div class="tw"><table style="min-width:720px"><thead><tr><th>BODEGA</th><th>ESTADO</th>${info?'<th>FECHA Y HORA</th><th>RESPUESTA</th><th>RECIBIDO</th>':'<th>ABIERTO</th><th>ENVIADO</th><th>RECIBIDO</th>'}<th></th></tr></thead>
+  <tbody>${L.map(x=>`<tr><td style="padding:8px"><b>${x.bodega}</b></td><td>${stt(x)}</td>${info?`<td>${t(x.procesado_at)}</td><td>${e(x.respuesta||'–')}</td><td>${t(x.recibido_at)}</td>`:`<td>${t(x.visto_at)}</td><td>${t(x.procesado_at)}</td><td>${t(x.recibido_at)}</td>`}<td style="padding:6px">${acc(x)}</td></tr>`).join('')||'<tr><td colspan="6" style="padding:14px" class="mut">Sin bodegas en este filtro.</td></tr>'}</tbody></table></div>
   ${info?'':`<h3>Datos enviados · ${R.length} filas</h3><div class="tw"><table><thead><tr>${COL.map(c=>`<th>${c.replace('_',' ').toUpperCase()}</th>`).join('')}</tr></thead><tbody>${R.map(x=>`<tr>${COL.map(c=>`<td style="padding:8px">${e(x[c])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}`;
 }
 
@@ -350,7 +371,7 @@ async function wa(id,pend){
   if(c.error)return alert(c.error.message+'\n¿Ya ejecutaste migracion_5_whatsapp_lotes.sql?');
   WS=new Set();WM={b:b.data,c:c.data};const x=s.data,info=x.tipo=='informativa',link=location.origin+location.pathname,
    rj=x.recojo_desde?(x.recojo_hasta&&x.recojo_hasta!=x.recojo_desde?`del ${fd(x.recojo_desde)} al ${fd(x.recojo_hasta)}`:fd(x.recojo_desde)):'';
-  const msg=`📢 *LOGÍSTICA INVERSA* · Hola Bodega {bodega}\n\n*${x.titulo}*\n${info?'Solo información: ingresa al portal y marca "Visto".':'Debes llenar la información en el portal.'}${x.plazo?`\n⏰ Plazo para procesar: ${fd(x.plazo)}`:''}${rj?`\n📅 Fecha de recojo: ${rj}`:''}\n\n🔗 ${link}\nIngresa con tu código de bodega y tu clave.`;
+  const msg=`📢 *LOGÍSTICA INVERSA* · Hola Bodega {bodega}\n\n*${x.titulo}*\n${info?'Solo información: ingresa al portal, llena el campo y confirma "Procesado".':'Debes llenar la información en el portal.'}${x.plazo?`\n⏰ Plazo para procesar: ${fd(x.plazo)}`:''}${rj?`\n📅 Fecha de recojo: ${rj}`:''}\n\n🔗 ${link}\nIngresa con tu código de bodega y tu clave.`;
   $('#m').innerHTML=`<div class="row"><button class="ghost" onclick="lista()">← Volver</button></div><h2>📲 Avisar por WhatsApp · ${e(x.titulo)}</h2>
   <div class="card"><label class="mut">Mensaje (puedes editarlo; {bodega} se cambia por el código de cada bodega)</label><textarea id="wm" rows="9">${e(msg)}</textarea>
   <label class="sw"><input type="checkbox" id="wp" onchange="wlist()"> Solo bodegas pendientes (recordatorio)</label>
