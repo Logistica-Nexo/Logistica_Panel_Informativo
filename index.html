@@ -138,26 +138,28 @@ async function mark(id,x){if(!confirm('¿Confirmas que ya viste esta informació
   const r=await rpc('bod_marcar',{p_sol:id,p_estado:x});r.error?alert(r.error.message):portal()}
 function fill(id){
   const s=S.find(x=>x.id==id),b=sessionStorage.bod;CUR=s;rpc('bod_marcar',{p_sol:id,p_estado:'visto'});
-  $('#m').innerHTML=`<button class="ghost" onclick="portal()">← Volver</button><h2>${e(s.titulo)} <span class="tag">${b}</span></h2>${datos(s)}
+  $('#m').innerHTML=`<button class="ghost" onclick="portal()">← Volver</button><h2>${e(s.titulo)} <span class="tag">${b}</span></h2>
   <div class="tw"><table><thead><tr>${['CÓDIGO','DESCRIPCIÓN','U. MEDIDA','CANTIDAD','F. VENCIMIENTO','LOTE','PROVEEDOR',''].map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody id="rows"></tbody></table></div>
   <div class="row"><button class="ghost" onclick="addRow()">+ Agregar fila</button><button onclick="send('${id}')">Enviar información</button><button class="ghost" onclick="send('${id}',1)">Sin existencias</button></div>`;
-  addRow();
+  prods(s).length?prods(s).forEach(x=>addRow(x)):addRow();
 }
 function selProd(el){const tr=el.closest('tr'),x=prods(CUR).find(y=>(y.codigo||'')==el.value);tr.querySelector('[data-c=descripcion]').value=x?.producto||''}
 function selLote(el){const tr=el.closest('tr'),m=lotes(CUR).filter(y=>y.lote==el.value),x=m.length==1?m[0]:null,f=tr.querySelector('[data-c=fecha_vencimiento]');f.value=x?.fecha||'';f.readOnly=!!x?.fecha;f.classList.toggle('lk',!!x?.fecha)}
-function addRow(){
+function dupRow(b){const tr=b.closest('tr');addRow({codigo:tr.querySelector('[data-c=codigo]').value,producto:tr.querySelector('[data-c=descripcion]').value,x:1})}
+function addRow(p){
   const s=CUR,L=lotes(s),conL=L.some(x=>x.lote),one=L.length==1,l0=L[0]||{};
   const i=(k,t='text',v='',ro=false)=>`<td><input data-c="${k}" type="${t}" value="${e(v)}" ${ro?'readonly class="lk"':''}></td>`;
   const sel=(k,o,ph,fn='')=>`<td><select data-c="${k}" ${fn}><option value="">${ph}</option>${o.map(([v,t])=>`<option value="${e(v)}">${e(t)}</option>`).join('')}</select></td>`;
-  const P=prods(s),multi=P.length>1,cod=multi?sel('codigo',P.map(x=>[x.codigo||'',(x.codigo||'')+(x.producto?' — '+x.producto:'')]),'Elige producto','onchange="selProd(this)"'):i('codigo','text',P[0]?.codigo||''),des=i('descripcion','text',multi?'':(P[0]?.producto||s.descripcion||''),multi);
+  const P=prods(s),multi=P.length>1,cod=p?i('codigo','text',p.codigo||'',true):multi?sel('codigo',P.map(x=>[x.codigo||'',(x.codigo||'')+(x.producto?' — '+x.producto:'')]),'Elige producto','onchange="selProd(this)"'):i('codigo','text',P[0]?.codigo||'',P.length==1),des=p?i('descripcion','text',p.producto||'',true):i('descripcion','text',multi?'':(P[0]?.producto||s.descripcion||''),multi||P.length==1);
   const fch=!conL&&L.length>1?sel('fecha_vencimiento',[...new Set(L.map(x=>x.fecha).filter(Boolean))].map(d=>[d,fd(d)]),'Elige fecha'):i('fecha_vencimiento','date',one?l0.fecha||'':'',one&&!!l0.fecha);
   const lot=conL&&!one?sel('lote',[...new Set(L.map(x=>x.lote).filter(Boolean))].map(v=>[v,v]),'Elige lote','onchange="selLote(this)"'):i('lote','text',one?l0.lote||'':'',one&&!!l0.lote);
-  $('#rows').insertAdjacentHTML('beforeend','<tr>'+cod+des+i('unidad')+i('cantidad','number')+fch+lot+i('proveedor')+'<td><button class="x" onclick="this.closest(\'tr\').remove()">✕</button></td></tr>');
+  const act=(p?'<button class="x" style="color:var(--p)" title="Otro lote de este producto" onclick="dupRow(this)">⧉</button>':'')+(!p||p.x?'<button class="x" onclick="this.closest(\'tr\').remove()">✕</button>':'');
+  $('#rows').insertAdjacentHTML('beforeend','<tr>'+cod+des+i('unidad')+i('cantidad','number')+fch+lot+i('proveedor')+'<td style="white-space:nowrap">'+act+'</td></tr>');
 }
 async function send(id,empty){
   const b=sessionStorage.bod,f=empty?[]:[...document.querySelectorAll('#rows tr')].map(r=>Object.fromEntries([...r.querySelectorAll('input,select')].map(i=>[i.dataset.c,i.value.trim()||null]))).filter(r=>r.cantidad||r.lote||r.proveedor);
-  if(!empty){if(!f.length)return alert('Agrega al menos una fila');if(f.some(r=>!r.codigo||!r.cantidad))return alert('Código y cantidad son obligatorios en cada fila')}
-  if(!confirm(empty?`¿Confirmas que ${b} no tiene existencias?`:`¿Enviar ${f.length} fila(s) de ${b}? No podrás editarlas después.`))return;
+  if(!empty){if([...document.querySelectorAll('#rows tr')].some(r=>r.querySelector('[data-c=codigo]').readOnly&&!r.querySelector('[data-c=cantidad]').value))return alert('Completa la cantidad de cada producto (escribe 0 si no tienes).');if(!f.length)return alert('Agrega al menos una fila');if(f.some(r=>!r.codigo||!r.cantidad))return alert('Código y cantidad son obligatorios en cada fila')}
+  if(!confirm(empty?`¿Confirmas que ${b} no tiene existencias? Se registrará cada producto con cantidad 0.`:`¿Enviar ${f.length} fila(s) de ${b}? No podrás editarlas después.`))return;
   const r=await rpc('enviar_bodega',{p_sol:id,p_filas:f,p_sin_existencias:!!empty});
   if(r.error)return alert('No se pudo enviar: '+r.error.message);
   $('#m').innerHTML='<div class="card"><h2>✅ Información enviada</h2><p>Gracias, '+b+'.</p><button onclick="portal()">Volver a solicitudes</button></div>';
@@ -245,12 +247,28 @@ async function oper(){
   <button class="ghost" onclick="dl('recepcion_operador.csv',[['bodega','asignadas','enviadas','recibidas','por_recibir'],...OD.map(o=>[o.b,o.n,o.env,o.rec,o.env-o.rec])])">Exportar CSV</button></div><div id="od"></div>`;
   $('#os').value=prev;opintar();
 }
+let OV='sol';
+const ovt=()=>`<div class="row" style="margin:6px 0 12px"><button class="${OV=='sol'?'':'ghost'}" onclick="OV='sol';opintar()">📋 Por solicitud</button><button class="${OV=='bod'?'':'ghost'}" onclick="OV='bod';opintar()">🏢 Por bodega</button></div>`;
+function opSol(L){
+  const ch=(x,c,ex='')=>`<span class="chip ${c}" style="padding:3px 10px;cursor:${ex?'pointer':'default'}" ${ex}>${x.bodega}</span>`;
+  $('#od').innerHTML=ovt()+`<p class="mut" style="margin:0 0 10px">Tu avance de recepción en cada solicitud. Clic en una bodega de "Por recibir" para marcarla como recibida.</p>`+(L.map(s=>{
+    const inf=s.tipo=='informativa',b=OB.filter(x=>x.solicitud_id==s.id),rec=b.filter(x=>x.procesado_at&&x.recibido_at),por=b.filter(x=>x.procesado_at&&!x.recibido_at),no=b.filter(x=>!x.procesado_at),n=b.length||1,pc=Math.round(rec.length/n*100);
+    return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${e(s.titulo)} <span class="tag">${inf?'Solo información':'Con llenado'}</span> <span class="tag">${s.estado}</span></h3>${por.length?`<button onclick="recibirSol('${s.id}')">📬 Recibir todas (${por.length})</button>`:''}</div>
+    <div class="row" style="margin-top:8px"><div class="sb" style="flex:1"><i class="p" style="width:${rec.length/n*100}%"></i><i class="v" style="width:${por.length/n*100}%"></i></div><b>${pc}%</b><span class="mut">${rec.length} recibidas de ${b.length}</span></div>
+    <div class="g2" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:12px">
+    <div><b style="color:var(--ok)">📬 Recibidas (${rec.length})</b><div class="chips">${rec.map(x=>`<span class="chip ok" style="padding:3px 10px">${x.bodega} <a title="Quitar recibido" onclick="confirm('¿Quitar el recibido de ${x.bodega}?')&&recibir('${x.bodega}','${s.id}',0)">↺</a></span>`).join('')||'<span class="mut">Ninguna aún</span>'}</div></div>
+    <div><b style="color:#8a6100">✅ Por recibir (${por.length})</b><div class="chips">${por.map(x=>ch(x,'vis',`onclick="recibir('${x.bodega}','${s.id}')" title="Marcar recibido"`)).join('')||'<span class="mut">Nada pendiente de recibir</span>'}</div></div>
+    <div><b style="color:#c0392b">⏳ Aún no ${inf?'procesan':'envían'} (${no.length})</b><div class="chips">${no.map(x=>ch(x,'')).join('')||'<span class="mut">Todas ya completaron 🎉</span>'}</div></div></div></div>`}).join('')||'<p class="mut">No hay solicitudes con este filtro.</p>');
+}
+async function recibirSol(id){const n=OB.filter(x=>x.solicitud_id==id&&x.procesado_at&&!x.recibido_at).length;if(!n||!confirm(`¿Marcar como recibidas las ${n} bodegas que ya completaron esta solicitud?`))return;
+  const r=await sb.from('solicitud_bodegas').update({recibido_at:new Date().toISOString()}).eq('solicitud_id',id).not('procesado_at','is',null).is('recibido_at',null);r.error?alert(r.error.message):oper()}
 function opintar(){
   const fs=$('#os').value,L=OS.filter(s=>(fs=='*'||(fs?s.id==fs:s.estado=='abierta'))&&(!$('#ot').value||s.tipo==$('#ot').value)),sm=Object.fromEntries(L.map(s=>[s.id,s])),by={},pc=(a,b)=>b?Math.round(a/b*100):0;OIDS=L.map(s=>s.id);
   OB.filter(x=>sm[x.solicitud_id]).forEach(x=>{const o=by[x.bodega]??={b:x.bodega,n:0,env:0,rec:0,l:[]};o.n++;if(x.procesado_at)o.env++;if(x.procesado_at&&x.recibido_at)o.rec++;o.l.push(x)});
   OD=Object.values(by).sort((a,b)=>(b.env-b.rec)-(a.env-a.rec)||a.b.localeCompare(b.b));
+  if(OV=='sol')return opSol(L);
   const T=OD.reduce((a,o)=>({n:a.n+o.n,env:a.env+o.env,rec:a.rec+o.rec}),{n:0,env:0,rec:0});
-  $('#od').innerHTML=`<div class="kpis"><div class="kpi"><b>${T.n}</b><span>Solicitudes asignadas</span></div><div class="kpi"><b>${T.env}</b><span>Completadas por bodegas (enviadas o vistas)</span></div><div class="kpi"><b>${T.rec}</b><span>Recibidas por ti</span></div><div class="kpi"><b style="color:${T.env-T.rec?'#8a6100':'inherit'}">${T.env-T.rec}</b><span>Por recibir</span></div><div class="kpi"><b>${pc(T.rec,T.env)}%</b><span>Mi avance (de lo enviado)</span></div><div class="kpi"><b>${pc(T.rec,T.n)}%</b><span>Avance total</span></div></div>
+  $('#od').innerHTML=`${ovt()}<div class="kpis"><div class="kpi"><b>${T.n}</b><span>Solicitudes asignadas</span></div><div class="kpi"><b>${T.env}</b><span>Completadas por bodegas (enviadas o vistas)</span></div><div class="kpi"><b>${T.rec}</b><span>Recibidas por ti</span></div><div class="kpi"><b style="color:${T.env-T.rec?'#8a6100':'inherit'}">${T.env-T.rec}</b><span>Por recibir</span></div><div class="kpi"><b>${pc(T.rec,T.env)}%</b><span>Mi avance (de lo enviado)</span></div><div class="kpi"><b>${pc(T.rec,T.n)}%</b><span>Avance total</span></div></div>
   <div class="tw"><table><thead><tr><th>BODEGA</th><th>ASIGNADAS</th><th>COMPLETADAS</th><th>RECIBIDAS</th><th>POR RECIBIR</th><th>AVANCE (verde = recibido · amarillo = por recibir)</th><th></th></tr></thead><tbody>${OD.map(o=>{const por=o.env-o.rec;
   return `<tr class="cl" data-b="${o.b}" onclick="tg(this)"><td style="padding:10px"><b><span class="ch">▸</span> ${o.b}</b></td><td>${o.n}</td><td>${o.env}</td><td>${o.rec}</td><td style="font-weight:700;color:${por?'#8a6100':'inherit'}">${por}</td><td><div class="sb"><i class="p" style="width:${o.rec/o.n*100}%"></i><i class="v" style="width:${por/o.n*100}%"></i></div> ${pc(o.rec,o.n)}%</td><td>${por?`<button onclick="event.stopPropagation();recibir('${o.b}')">📬 Recibir todo</button>`:''}</td></tr>
   <tr hidden><td colspan="7" style="padding:10px 16px;background:#f6f7fd">${o.l.map(x=>{const inf=sm[x.solicitud_id].tipo=='informativa',t=e(sm[x.solicitud_id].titulo)+` <span class="mut">(${inf?'info':'llenado'})</span>`;
