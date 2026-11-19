@@ -58,6 +58,23 @@ button:hover{background:var(--p2)}button:disabled{opacity:.5;cursor:default}butt
 @keyframes fl{0%,100%{translate:0 0}50%{translate:0 -14px}}
 @media(max-width:900px){.hz-in{grid-template-columns:1fr;padding:22px 20px 60px}.sc{display:none}.hz-foot{left:20px}}
 @media(prefers-reduced-motion:reduce){.hz *{animation:none!important;transition:none!important}}
+/* ===== Admin: menú lateral y gráficas ===== */
+.ad{display:grid;grid-template-columns:250px 1fr;min-height:100vh;background:var(--bg)}
+.sd{background:linear-gradient(170deg,#7a1f8c 0%,#3a2a9c 45%,#1b2154 100%);color:#fff;padding:22px 16px;display:flex;flex-direction:column;gap:14px;position:sticky;top:0;height:100vh}
+.sd-logo{display:flex;align-items:center;gap:10px;letter-spacing:.3em}.sd-logo img{width:38px;height:38px;border-radius:10px}.sd-logo b{font-weight:600;font-size:15px}
+.sd-user{text-align:center;margin:6px 0 4px}.av{width:72px;height:72px;border-radius:50%;background:#fff;color:var(--p2);font:700 24px Outfit,sans-serif;display:grid;place-items:center;margin:0 auto 8px;box-shadow:0 6px 18px #0004}
+.sd-user span{display:block;font-weight:600;font-size:13px;word-break:break-all}.sd-user small{opacity:.75}
+.sd nav{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.nv{display:flex;align-items:center;gap:12px;width:100%;background:none;color:#fff;text-align:left;padding:11px 14px;border-radius:12px;font:500 15px Outfit,sans-serif}
+.nv span{width:22px;text-align:center}.nv:hover{background:rgba(255,255,255,.14)}.nv.on{background:rgba(255,255,255,.24);box-shadow:inset 3px 0 0 #fff;font-weight:700}.nv.out{margin-top:auto;background:rgba(255,255,255,.08)}
+.ad-main{padding:26px 30px;min-width:0}
+.rg{text-align:center}.rr{width:96px;height:96px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;background:conic-gradient(var(--c) calc(var(--p)*1%),#e6e8f8 0)}
+.rr:before{content:"";grid-area:1/1;width:72px;height:72px;border-radius:50%;background:#fff}.rr b{grid-area:1/1;font:700 21px Outfit,sans-serif;z-index:1}
+.rg span{display:block;font-weight:600;font-size:14px}.rg small{color:var(--m);font-size:12px}
+.sol-g{display:grid;grid-template-columns:minmax(300px,370px) 1fr;gap:24px;margin-top:14px;align-items:center}.rgs{display:flex;gap:12px;justify-content:space-around}
+.lg{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px}
+details summary{cursor:pointer;font-weight:600;color:var(--p2);margin-top:12px}
+@media(max-width:860px){.ad{grid-template-columns:1fr}.sd{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px}.sd-user,.sd-logo b{display:none}.sd nav{flex-direction:row;overflow-x:auto;flex:1;margin:0}.nv{width:auto;white-space:nowrap;padding:9px 12px}.nv.out{margin:0}.ad-main{padding:16px 12px}.sol-g{grid-template-columns:1fr}}
 .sw{display:flex;gap:8px;align-items:center;font-weight:600;margin:6px 0 10px}.sw input{width:auto;margin:0}
 .sb{display:flex;height:12px;background:#e6e8f8;border-radius:6px;overflow:hidden;min-width:140px}.sb i{display:block;height:100%}.sb .p{background:var(--ok)}.sb .v{background:var(--w)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0 14px}
@@ -166,10 +183,16 @@ async function send(id,empty){
 }
 
 /* ================= PANEL ADMIN (#admin) ================= */
+const act=k=>document.querySelectorAll('.nv').forEach(b=>b.classList.toggle('on',b.dataset.k==k));
+function go(k){({nueva,lista,dash,oper,contactos,accesos})[k]()}
 async function admin(){
   const{data:{session}}=await sb.auth.getSession();
   if(!session){app.innerHTML=hero(`<h3>Acceso administrador / operador</h3><input id="em" placeholder="Correo"><input id="pw" type="password" placeholder="Contraseña" onkeydown="event.key=='Enter'&&login()"><button onclick="login()">Ingresar</button>`,'Panel de control: solicitudes, seguimiento por bodega y recepción.');return tilt()}
-  app.innerHTML=head('Administrador','<button class="ghost" onclick="sb.auth.signOut().then(admin)">Salir</button>')+'<main><div class="row" style="margin-bottom:14px"><button onclick="dash()">📊 Dashboard</button><button class="ghost" onclick="lista()">Solicitudes</button><button class="ghost" onclick="nueva()">+ Nueva solicitud</button><button class="ghost" onclick="oper()">📦 Operador</button><button class="ghost" onclick="contactos()">📱 Contactos</button><button class="ghost" onclick="accesos()">🔑 Accesos de bodegas</button></div><div id="m"></div></main>';
+  const em=session.user.email||'';
+  app.innerHTML=`<div class="ad"><aside class="sd"><div class="sd-logo"><img src="icon.jpg" alt=""><b>NEXOCORP</b></div>
+  <div class="sd-user"><div class="av">${e(em.slice(0,2).toUpperCase())}</div><span>${e(em)}</span><small>Administrador / Operador</small></div>
+  <nav>${[['nueva','✚','Nueva solicitud'],['lista','📋','Solicitudes'],['dash','📊','Dashboard'],['oper','📦','Operador'],['contactos','📱','Contactos'],['accesos','🔑','Accesos bodega']].map(([k,i,t])=>`<button class="nv" data-k="${k}" onclick="go('${k}')"><span>${i}</span>${t}</button>`).join('')}</nav>
+  <button class="nv out" onclick="sb.auth.signOut().then(admin)"><span>⎋</span>Salir</button></aside><section class="ad-main"><div id="m"></div></section></div>`;
   dash();
 }
 async function login(){const{error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});error?alert(error.message):admin()}
@@ -193,10 +216,10 @@ async function cambiarMaestra(){const n=$('#mn').value;if(n.length<8)return aler
 
 /* ---- Dashboard ---- */
 let DS=[],DB=[],DR=[];
-async function dash(){
+async function dash(){act('dash');
   $('#m').innerHTML='<p class="mut">Cargando…</p>';
   await sb.rpc('cerrar_vencidas');
-  const[a,b]=await Promise.all([sb.from('solicitudes').select('id,titulo,tipo,estado,plazo').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
+  const[a,b]=await Promise.all([sb.from('solicitudes').select('id,titulo,tipo,estado,plazo,recojo_desde,recojo_hasta').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
   if(a.error||b.error)return $('#m').innerHTML='<div class="card">'+e((a.error||b.error).message)+'</div>';
   DS=a.data;DB=b.data;
   $('#m').innerHTML=`<div class="row"><select id="fs" onchange="pintar()" style="max-width:340px"><option value="">Todas las solicitudes abiertas</option><option value="*">Todas, incluidas las cerradas</option>${DS.map(s=>`<option value="${s.id}">${e(s.titulo)}${s.estado=='cerrada'?' (cerrada)':''}</option>`).join('')}</select>
@@ -205,15 +228,27 @@ async function dash(){
 }
 let DV='sol';
 const vt=()=>`<div class="row" style="margin:6px 0 12px"><button class="${DV=='sol'?'':'ghost'}" onclick="DV='sol';pintar()">📋 Por solicitud</button><button class="${DV=='bod'?'':'ghost'}" onclick="DV='bod';pintar()">🏢 Por bodega (acumulado)</button></div>`;
+const ring=(p,c,l,sub)=>`<div class="rg"><div class="rr" style="--p:${p};--c:${c}"><b>${p}%</b></div><span>${l}</span><small>${sub}</small></div>`;
+function dias(b){const m={},k=d=>new Date(d).toLocaleDateString('en-CA'),add=(d,f)=>{(m[k(d)]??={r:0,c:0})[f]++};
+  b.forEach(x=>{if(x.procesado_at)add(x.procesado_at,'r');if(x.recibido_at)add(x.recibido_at,'c')});
+  const ks=Object.keys(m).sort();if(!ks.length)return[];const o=[],d=new Date(ks[0]+'T00:00'),f=new Date(ks[ks.length-1]+'T00:00');
+  while(d<=f&&o.length<31){const q=d.toLocaleDateString('en-CA');o.push({d:q,...(m[q]||{r:0,c:0})});d.setDate(d.getDate()+1)}return o}
+function grafica(D){
+  if(!D.length)return '<p class="mut" style="margin:10px 0">Aún no hay respuestas para graficar.</p>';
+  const W=Math.max(320,D.length*56),H=170,P=30,mx=Math.max(1,...D.flatMap(x=>[x.r,x.c])),sw=(W-P-6)/D.length,y=v=>H-26-(v/mx)*(H-52);let g='';
+  [0,.5,1].forEach(t=>{const yy=y(mx*t);g+=`<line x1="${P}" x2="${W-6}" y1="${yy}" y2="${yy}" stroke="#e6e8f8"/><text x="${P-6}" y="${yy+4}" font-size="10" fill="#6b7099" text-anchor="end">${Math.round(mx*t)}</text>`});
+  D.forEach((x,i)=>{const cx=P+sw*i+sw/2;
+    g+=`<rect x="${cx-17}" y="${y(x.r)}" width="16" height="${H-26-y(x.r)}" rx="3" fill="#5046E5"><title>${x.r} bodegas respondieron</title></rect><rect x="${cx+1}" y="${y(x.c)}" width="16" height="${H-26-y(x.c)}" rx="3" fill="#1f9d6b"><title>${x.c} recibidas</title></rect><text x="${cx}" y="${H-8}" font-size="10" fill="#6b7099" text-anchor="middle">${x.d.slice(8)}/${x.d.slice(5,7)}</text>`});
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:none">${g}</svg></div><div class="row" style="font-size:13px;gap:16px"><span><i class="lg" style="background:#5046E5"></i>Respondieron</span><span><i class="lg" style="background:#1f9d6b"></i>Recibidas</span></div>`}
 function pintarSol(L){
-  const hoy=hoyL(),ch=(x,c)=>`<span class="chip ${c}" style="padding:3px 10px;cursor:default">${x.bodega}</span>`;
-  $('#db').innerHTML=vt()+`<p class="mut" style="margin:0 0 10px">Cada solicitud con su propio avance. En "Faltan", amarillo = la bodega la abrió pero no la envió.</p>`+(L.map(s=>{
-    const info=s.tipo=='informativa',b=DB.filter(x=>x.solicitud_id==s.id),ok=b.filter(x=>x.procesado_at),fa=b.filter(x=>!x.procesado_at),rc=b.filter(x=>x.recibido_at).length,pc=b.length?Math.round(ok.length/b.length*100):0,venc=s.plazo&&s.plazo<hoy&&fa.length;
-    return `<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${e(s.titulo)} <span class="tag">${info?'Solo información':'Con llenado'}</span> <span class="tag">${s.estado}</span></h3><div class="row"><button class="ghost" onclick="ver('${s.id}')">Seguimiento</button>${fa.length&&s.estado=='abierta'?`<button onclick="wa('${s.id}',1)">📲 Avisar a los ${fa.length} que faltan</button>`:''}</div></div>
-    <p class="mut" style="margin:6px 0">${s.plazo?'Plazo para procesar: '+fd(s.plazo):'Sin plazo'}${venc?' · <b style="color:#c0392b">vencido</b>':''} · ${rc} recibidas</p>
-    <div class="row"><div class="sb" style="flex:1"><i class="p" style="width:${pc}%"></i></div><b>${pc}%</b><span class="mut">${ok.length} de ${b.length}</span></div>
-    <div class="g2" style="margin-top:12px"><div><b style="color:var(--ok)">✅ ${info?'Ya procesaron':'Ya enviaron'} (${ok.length})</b><div class="chips">${ok.map(x=>ch(x,'ok')).join('')||'<span class="mut">Nadie aún</span>'}</div></div>
-    <div><b style="color:#c0392b">⏳ Faltan (${fa.length})</b><div class="chips">${fa.map(x=>ch(x,x.visto_at?'vis':'')).join('')||'<span class="mut">Todas completaron 🎉</span>'}</div></div></div></div>`}).join('')||'<p class="mut">No hay solicitudes con este filtro.</p>');
+  const hoy=hoyL(),ch=x=>`<span class="chip ${x.procesado_at?'ok':x.visto_at?'vis':''}" style="padding:3px 10px;cursor:default">${x.bodega}${x.recibido_at?' 📬':''}</span>`;
+  $('#db').innerHTML=vt()+(L.map(s=>{
+    const info=s.tipo=='informativa',b=DB.filter(x=>x.solicitud_id==s.id),n=b.length||1,ok=b.filter(x=>x.procesado_at),fa=b.filter(x=>!x.procesado_at),rc=ok.filter(x=>x.recibido_at),por=ok.length-rc.length,venc=s.plazo&&s.plazo<hoy&&fa.length;
+    return `<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h3 style="margin:0">${e(s.titulo)}</h3><div class="row" style="gap:6px;margin-top:6px"><span class="tag">${info?'Solo información':'Con llenado'}</span><span class="tag">${s.estado}</span>${s.plazo?`<span class="tag" style="${venc?'background:#fde8e6;color:#c0392b':''}">⏰ Plazo ${fd(s.plazo)}${venc?' · vencido':''}</span>`:''}${s.recojo_desde?`<span class="tag" style="background:#e3f6ee;color:var(--ok)">📅 Recojo ${fd(s.recojo_desde)}${s.recojo_hasta&&s.recojo_hasta!=s.recojo_desde?' al '+fd(s.recojo_hasta):''}</span>`:''}</div></div>
+    <div class="row"><button class="ghost" onclick="ver('${s.id}')">Seguimiento</button>${fa.length&&s.estado=='abierta'?`<button onclick="wa('${s.id}',1)">📲 Avisar (${fa.length})</button>`:''}</div></div>
+    <div class="sol-g"><div class="rgs">${ring(Math.round(ok.length/n*100),'#5046E5',info?'Procesado':'Registro',`${ok.length} de ${b.length}`)}${ring(Math.round(rc.length/n*100),'#1f9d6b','Recibido',`${rc.length} de ${b.length} · ${por} por recibir`)}${ring(Math.round(fa.length/n*100),'#f0b429','Faltan',`${fa.length} bodegas`)}</div>
+    <div><b style="font-size:14px">Respuestas por día</b>${grafica(dias(b))}</div></div>
+    <details><summary>Ver bodegas (${ok.length} completaron · ${fa.length} faltan)</summary><div class="g2" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:8px"><div><b style="color:var(--ok)">✅ ${info?'Ya procesaron':'Ya enviaron'}</b><div class="chips">${ok.map(ch).join('')||'<span class="mut">Nadie aún</span>'}</div></div><div><b style="color:#c0392b">⏳ Faltan</b><div class="chips">${fa.map(ch).join('')||'<span class="mut">Todas completaron 🎉</span>'}</div></div></div></details></div>`}).join('')||'<p class="mut">No hay solicitudes con este filtro.</p>');
 }
 function pintar(){
   const fs=$('#fs').value,ft=$('#ft').value,hoy=hoyL();
@@ -234,7 +269,7 @@ function tgAll(o){document.querySelectorAll('tr.cl').forEach(tr=>{tr.nextElement
 
 /* ---- Dashboard del operador (recibido) ---- */
 let OS=[],OB=[],OD=[],OIDS=[],OPEN=[];
-async function oper(){
+async function oper(){act('oper');
   OPEN=[...document.querySelectorAll('tr.cl')].filter(t=>!t.nextElementSibling.hidden).map(t=>t.dataset.b);const prev=$('#os')?.value||'';
   $('#m').innerHTML='<p class="mut">Cargando…</p>';
   await sb.rpc('cerrar_vencidas');
@@ -283,7 +318,7 @@ async function recibir(b,id,v=1){
 }
 
 /* ---- Solicitudes ---- */
-function nueva(){
+function nueva(){act('nueva');
   $('#m').innerHTML=`<div class="card"><h2>Nueva solicitud</h2>
   <select id="tp"><option value="llenado">Con llenado: las bodegas cargan datos</option><option value="informativa">Solo información: las bodegas la procesan, escriben un detalle y confirman</option></select>
   <input id="t" placeholder="Título (ej. Repliegue EVRA PROMEDICAL)">
@@ -320,7 +355,7 @@ async function crear(){
   const r=await sb.from('solicitud_bodegas').insert(bs.map(b=>({solicitud_id:data.id,bodega:b})));
   r.error?alert(r.error.message):lista();
 }
-async function lista(){
+async function lista(){act('lista');
   await sb.rpc('cerrar_vencidas');
   const[a,b]=await Promise.all([sb.from('solicitudes').select('*').order('created_at',{ascending:false}),sb.from('solicitud_bodegas').select('*').limit(10000)]);
   $('#m').innerHTML=a.data.map(s=>{const info=s.tipo=='informativa',x=b.data.filter(y=>y.solicitud_id==s.id),p=x.filter(y=>y.procesado_at).length,v=x.filter(y=>y.visto_at&&!y.procesado_at).length,n=x.length||1;
@@ -374,7 +409,7 @@ function sg(f){
 /* ---- Contactos y aviso por WhatsApp (manual, gratis) ---- */
 let CT={},WS=new Set(),WM={},WL=[];
 const tel=v=>{let d=String(v).replace(/\D/g,'');if(d.length==8)d='591'+d;return d};
-async function contactos(){
+async function contactos(){act('contactos');
   const r=await sb.from('bodega_contactos').select('*').order('bodega');
   if(r.error)return $('#m').innerHTML='<div class="card">'+e(r.error.message)+'<br>¿Ya ejecutaste migracion_5_whatsapp_lotes.sql?</div>';
   CT={};r.data.forEach(c=>(CT[c.bodega]??=[]).push(c));
@@ -408,7 +443,7 @@ function wnext(){const i=WL.findIndex(w=>w.t&&!WS.has(w.b+w.t));i<0?alert('Ya ab
 
 /* ---- Accesos de bodegas ---- */
 let ACC={};
-async function accesos(){
+async function accesos(){act('accesos');
   const r=await sb.rpc('admin_accesos');
   if(r.error)return $('#m').innerHTML='<div class="card">'+e(r.error.message)+'<br>¿Ya ejecutaste las migraciones SQL en Supabase?</div>';
   ACC=Object.fromEntries(r.data.map(x=>[x.bodega,x]));const falt=BOD.filter(b=>!ACC[b]).length;
